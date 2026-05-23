@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.10.0",
+    "mqtt": "^5.15.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
