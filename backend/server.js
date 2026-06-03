@@ -1,10 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { generateControlCommand, handleUserQuery, generateShiftReport } from './agent.js';
-import { initDb } from './db.js';
+import { initDb, saveReportToDb, loadReportsList, loadReportContent } from './db.js';
 import { initMqttClient } from './mqttClient.js';
-dotenv.config();
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.env') });
 
 const app = express();
 const PORT = process.env.RENDER ? (process.env.PORT || 10000) : 5050;
@@ -19,6 +22,12 @@ const ZONE_NAMES = {
   ZoneC: "Zone C: 조립 구역 (Assembly Area)",
   ZoneD: "Zone D: 검사 및 포장 구역 (Inspection & Packaging)"
 };
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const reportsDir = path.resolve(__dirname, 'reports');
+if (!fs.existsSync(reportsDir)) {
+  fs.mkdirSync(reportsDir, { recursive: true });
+}
 
 export let factoryState = {
   zones: {
@@ -83,9 +92,23 @@ export let factoryState = {
     { timestamp: new Date(Date.now() - 3600000).toLocaleTimeString(), type: "ai", zone: "ZoneB", message: "Zone B 무인 감지: 조도 20% 자동 디밍 및 환기 속도 10% 감축. 대기전력 차단 장치 활성화." }
   ],
   alerts: [
-    { id: 1, timestamp: new Date(Date.now() - 1800000).toLocaleTimeString(), zone: "ZoneD", level: "warning", message: "Zone D(검사 및 포장) 작업 밀집도 초과 경보 (적정 인원: 3명, 현재: 4명)" }
+    { id: 1, timestamp: new Date(Date.now() - 1800000).toLocaleTimeString(), zone: "ZoneD", level: "warning", message: "Zone D(검사 및 포장) 작업 밀집도 초과 경보 (적정 인원: 3명, 현재: 4명)", broadcastVerified: false }
   ],
-  isAiEnabled: true
+  isAiEnabled: true,
+  equipmentRecommendations: {
+    ZoneA: "생산 라인: 대형 팬 풍량 자동 제어 및 주 작업 공간 이외의 보조 전력 차단을 추천합니다.",
+    ZoneB: "자재 창고: 무인 대기 상태이므로 조명 밝기를 20% 이하로 유지하고 대기전력을 스위칭하는 것이 최적입니다.",
+    ZoneC: "조립 구역: 적정 밀집도 감지로 조도 70% 제어 및 스마트 콘센트를 통한 에너지 세이빙 가동을 추천합니다.",
+    ZoneD: "검사 및 포장 구역: 작업 밀집도가 높아 보조 공조 장치 가동 및 메인 배기 팬 고속 운전(80% 이상)을 추천합니다."
+  },
+  kpis: {
+    accuracy: 92.8,
+    speed: 0.42,
+    powerSavings: 24.5,
+    responseTime: 33.5,
+    detectionRate: 89.2
+  },
+  ticksSinceReset: 10
 };
 
 // Initialize 24-hour power history for charts
@@ -120,8 +143,63 @@ initHistory();
 initDb();
 initMqttClient();
 
+// Function to update KPIs dynamically
+const updateLiveKpis = () => {
+  if (!factoryState.kpis) {
+    factoryState.kpis = {
+      accuracy: 0,
+      speed: 0,
+      powerSavings: 0,
+      responseTime: 0,
+      detectionRate: 0
+    };
+  }
+
+  // If in reset cooldown, keep them at 0
+  if (factoryState.ticksSinceReset !== undefined && factoryState.ticksSinceReset < 1) {
+    factoryState.ticksSinceReset++;
+    return;
+  }
+
+  // 1. Accuracy: slightly fluctuates around 92-94%
+  factoryState.kpis.accuracy = parseFloat((92.8 + (Math.random() - 0.5) * 1.5).toFixed(1));
+
+  // 2. Speed: slightly fluctuates around 0.4 seconds
+  factoryState.kpis.speed = parseFloat((0.42 + (Math.random() - 0.5) * 0.06).toFixed(2));
+
+  // 3. Power savings: dynamically calculated from base power vs optimized power consumption
+  let totalBase = 0;
+  let totalOptimized = 0;
+  Object.keys(factoryState.zones).forEach(zoneId => {
+    totalBase += factoryState.zones[zoneId].basePower;
+    totalOptimized += factoryState.zones[zoneId].powerConsumption;
+  });
+  const currentSavingsPct = totalBase > 0 ? ((totalBase - totalOptimized) / totalBase) * 100 : 0;
+  // Apply a small smoothing/fluctuation to make it look active
+  factoryState.kpis.powerSavings = parseFloat((currentSavingsPct + (Math.random() - 0.5) * 1.0).toFixed(1));
+  // Keep it within a realistic bounds (20% - 30%)
+  if (factoryState.kpis.powerSavings < 15) factoryState.kpis.powerSavings = 15;
+  if (factoryState.kpis.powerSavings > 35) factoryState.kpis.powerSavings = 35;
+
+  // 4. Response Time Reduction: influenced by admin broadcast warnings
+  const totalAlerts = factoryState.alerts.length;
+  const verifiedAlerts = factoryState.alerts.filter(a => a.broadcastVerified).length;
+  if (totalAlerts > 0) {
+    const verifiedRatio = verifiedAlerts / totalAlerts;
+    factoryState.kpis.responseTime = parseFloat((18.0 + verifiedRatio * 18.0 + (Math.random() - 0.5) * 2.0).toFixed(1));
+  } else {
+    factoryState.kpis.responseTime = parseFloat((32.5 + (Math.random() - 0.5) * 1.5).toFixed(1));
+  }
+
+  // 5. Detection Rate: slightly fluctuates around 89-91%
+  factoryState.kpis.detectionRate = parseFloat((89.5 + (Math.random() - 0.5) * 1.2).toFixed(1));
+};
+
+let reportCycleCounter = 0;
+
 // Background simulation loop: slightly fluctuate values & recalculate power consumption
 setInterval(() => {
+  updateLiveKpis();
   // Minor sensor value fluctuation
   Object.keys(factoryState.zones).forEach(zoneId => {
     const zone = factoryState.zones[zoneId];
@@ -132,9 +210,51 @@ setInterval(() => {
     if (zone.workers > 0) {
       if (Math.random() < 0.05) {
         zone.hasHelmetViolation = !zone.hasHelmetViolation;
+        if (zone.hasHelmetViolation) {
+          const msg = `[안전 위반] ${zone.name}에서 보호구(안전모) 미착용 작업자가 감지되었습니다! 즉시 현장 지도 및 경고 방송이 필요합니다.`;
+          const exists = factoryState.alerts.some(a => a.message === msg);
+          if (!exists) {
+            factoryState.alerts.unshift({
+              id: Date.now(),
+              timestamp: new Date().toLocaleTimeString(),
+              zone: zoneId,
+              level: "danger",
+              message: msg,
+              broadcastVerified: false
+            });
+            factoryState.logs.push({
+              timestamp: new Date().toLocaleTimeString(),
+              type: "danger",
+              zone: zoneId,
+              message: `[위험 경고] ${msg}`
+            });
+          }
+        }
       }
     } else {
       zone.hasHelmetViolation = false;
+    }
+
+    // Auto trigger crowded warning alert if workers count increases
+    if (zone.workers >= 4) {
+      const msg = `Zone ${zoneId.charAt(zoneId.length - 1)} 구역의 작업 밀집도 초과 경보 (적정 인원: 3명, 현재: ${zone.workers}명)`;
+      const exists = factoryState.alerts.some(a => a.message === msg);
+      if (!exists) {
+        factoryState.alerts.unshift({
+          id: Date.now(),
+          timestamp: new Date().toLocaleTimeString(),
+          zone: zoneId,
+          level: "warning",
+          message: msg,
+          broadcastVerified: false
+        });
+        factoryState.logs.push({
+          timestamp: new Date().toLocaleTimeString(),
+          type: "danger",
+          zone: zoneId,
+          message: `[위험 경고] ${msg}`
+        });
+      }
     }
 
     // Calculate simulated live power based on current controls and workers
@@ -183,6 +303,12 @@ setInterval(() => {
         savings: parseFloat(diffKw.toFixed(1))
       });
     }
+    // Automated operational report saving per user request
+    reportCycleCounter++;
+    if (reportCycleCounter >= 12) {
+      reportCycleCounter = 0;
+      autoGenerateReport();
+    }
   }
 }, 5000);
 
@@ -202,6 +328,10 @@ async function runAiOptimization() {
           zone.lights = rec.actions.lights;
           zone.ventilation = rec.actions.ventilation;
           zone.standbyPowerCut = rec.actions.standbyPowerCut;
+          
+          if (rec.equipmentRecommendation) {
+            factoryState.equipmentRecommendations[rec.zoneId] = rec.equipmentRecommendation;
+          }
 
           // Log the reasoning if there was a change in state
           const lastLog = factoryState.logs[factoryState.logs.length - 1];
@@ -228,7 +358,8 @@ async function runAiOptimization() {
             timestamp: new Date().toLocaleTimeString(),
             zone: "MULTI",
             level: aiDecision.safetyAlert.level,
-            message: aiDecision.safetyAlert.message
+            message: aiDecision.safetyAlert.message,
+            broadcastVerified: false
           };
           factoryState.alerts.unshift(newAlert);
           
@@ -271,6 +402,48 @@ function triggerDebouncedAiOptimization() {
 
 // Periodically run AI control every 30 seconds
 setInterval(runAiOptimization, 30000);
+
+// Auto generate shift report in background using AI Agent
+async function autoGenerateReport() {
+  if (!factoryState.isAiEnabled) return;
+  
+  const summaryData = {
+    currentTime: new Date().toLocaleString(),
+    cumulativeSavingsKwh: factoryState.cumulativeSavingsKwh,
+    cumulativeSavingsCost: factoryState.cumulativeSavingsCost,
+    activeZones: Object.entries(factoryState.zones).map(([id, z]) => ({
+      zone: z.name,
+      workers: z.workers,
+      powerKw: z.powerConsumption,
+      lights: z.lights,
+      ventilation: z.ventilation
+    })),
+    recentAlerts: factoryState.alerts.slice(0, 5),
+    recentLogs: factoryState.logs.slice(-10)
+  };
+
+  try {
+    console.log("🤖 Running Background AI Shift Report Generation...");
+    const report = await generateShiftReport(summaryData);
+    
+    // Save report file
+    const filename = `auto_report_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
+    const filepath = path.join(reportsDir, filename);
+    fs.writeFileSync(filepath, report, 'utf8');
+
+    // Save metadata to SQLite
+    saveReportToDb({
+      filename,
+      content: report,
+      kpiSavingsKwh: summaryData.cumulativeSavingsKwh,
+      alertsCount: summaryData.recentAlerts.length,
+      broadcastCount: summaryData.recentAlerts.filter(a => a.broadcastVerified).length
+    });
+    console.log(`✅ Background report generated and saved: ${filename}`);
+  } catch (err) {
+    console.error("❌ Failed to automatically generate report:", err);
+  }
+}
 
 // --- API ENDPOINTS ---
 
@@ -324,6 +497,48 @@ app.post('/api/factory/control', async (req, res) => {
   res.json(factoryState);
 });
 
+// Admin triggers warning broadcast verification
+app.post('/api/alerts/broadcast', (req, res) => {
+  const { alertId } = req.body;
+  const alert = factoryState.alerts.find(a => a.id === parseInt(alertId));
+  if (alert) {
+    alert.broadcastVerified = true;
+    factoryState.logs.push({
+      timestamp: new Date().toLocaleTimeString(),
+      type: "system",
+      zone: alert.zone,
+      message: `[관리자 검증] 경고 방송이 정상 송출되었습니다. 대상 경보: ${alert.message}`
+    });
+    return res.json(factoryState);
+  }
+  res.status(404).json({ error: "Alert not found" });
+});
+
+// Retrieve report list
+app.get('/api/reports', (req, res) => {
+  try {
+    const list = loadReportsList();
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Retrieve single report details
+app.get('/api/reports/:id', (req, res) => {
+  try {
+    const reportId = parseInt(req.params.id);
+    const report = loadReportContent(reportId);
+    if (report) {
+      res.json(report);
+    } else {
+      res.status(404).json({ error: "Report not found" });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Reset simulation data
 app.post('/api/factory/reset', (req, res) => {
   factoryState.cumulativeSavingsKwh = 0;
@@ -332,6 +547,17 @@ app.post('/api/factory/reset', (req, res) => {
     { timestamp: new Date().toLocaleTimeString(), type: "system", zone: "ALL", message: "Aegis Factory 시스템 시뮬레이션 리셋 완료." }
   ];
   factoryState.alerts = [];
+  
+  // Reset KPIs to 0 ("측정 대기" / "0%")
+  factoryState.ticksSinceReset = 0;
+  factoryState.kpis = {
+    accuracy: 0,
+    speed: 0,
+    powerSavings: 0,
+    responseTime: 0,
+    detectionRate: 0
+  };
+  
   initHistory();
   res.json(factoryState);
 });
@@ -347,7 +573,7 @@ app.post('/api/agent/chat', async (req, res) => {
   res.json({ reply });
 });
 
-// Generate professional Shift Report
+// Generate professional Shift Report & Save
 app.post('/api/agent/report', async (req, res) => {
   const summaryData = {
     currentTime: new Date().toLocaleString(),
@@ -364,11 +590,30 @@ app.post('/api/agent/report', async (req, res) => {
     recentLogs: factoryState.logs.slice(-10)
   };
 
-  const report = await generateShiftReport(summaryData);
-  res.json({ report });
+  try {
+    const report = await generateShiftReport(summaryData);
+    
+    // Save report file
+    const filename = `manual_report_${new Date().toISOString().replace(/[:.]/g, '-')}.md`;
+    const filepath = path.join(reportsDir, filename);
+    fs.writeFileSync(filepath, report, 'utf8');
+
+    // Save metadata to SQLite
+    saveReportToDb({
+      filename,
+      content: report,
+      kpiSavingsKwh: summaryData.cumulativeSavingsKwh,
+      alertsCount: summaryData.recentAlerts.length,
+      broadcastCount: summaryData.recentAlerts.filter(a => a.broadcastVerified).length
+    });
+
+    res.json({ report });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to generate and save report: " + err.message });
+  }
 });
 
 // Start express server
 app.listen(PORT, () => {
   console.log(`Aegis Factory server is running on http://localhost:${PORT}`);
-});
+}); // triggered restart after final port release

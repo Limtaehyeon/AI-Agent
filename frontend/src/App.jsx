@@ -5,7 +5,9 @@ import EnergyCharts from './components/EnergyCharts';
 import AgentControlLog from './components/AgentControlLog';
 import SafetyAlerts from './components/SafetyAlerts';
 import AgentChat from './components/AgentChat';
-import { Cpu, RefreshCw, Layers, ShieldAlert, Sparkles, FileText, X } from 'lucide-react';
+import KPIGoalTracker from './components/KPIGoalTracker';
+import SavedReports from './components/SavedReports';
+import { Cpu, RefreshCw, Layers, ShieldAlert, Sparkles, FileText, X, Zap, DollarSign, Leaf, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 function App() {
   const [zones, setZones] = useState(null);
@@ -18,6 +20,9 @@ function App() {
   const [isAiEnabled, setIsAiEnabled] = useState(true);
   const [reportMarkdown, setReportMarkdown] = useState(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [kpis, setKpis] = useState(null);
+  const [activeRightTab, setActiveRightTab] = useState('chat');
+  const [reportsRefreshTrigger, setReportsRefreshTrigger] = useState(0);
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
@@ -35,6 +40,7 @@ function App() {
       setLogs(data.logs);
       setAlerts(data.alerts);
       setIsAiEnabled(data.isAiEnabled);
+      setKpis(data.kpis);
     } catch (error) {
       console.error("Error fetching factory state:", error);
     }
@@ -112,6 +118,8 @@ function App() {
         setCumulativeSavingsCost(data.cumulativeSavingsCost);
         setLogs(data.logs);
         setAlerts(data.alerts);
+        if (data.kpis) setKpis(data.kpis);
+        setReportsRefreshTrigger(prev => prev + 1);
       }
     } catch (error) {
       console.error("Error resetting simulation:", error);
@@ -126,6 +134,8 @@ function App() {
       if (response.ok) {
         const data = await response.json();
         setReportMarkdown(data.report);
+        // Refresh the reports library when a new report is generated
+        setReportsRefreshTrigger(prev => prev + 1);
       } else {
         alert("레포트 생성 중 API 서버 에러가 발생했습니다.");
       }
@@ -134,6 +144,24 @@ function App() {
       alert("백엔드와 연동할 수 없습니다.");
     } finally {
       setIsGeneratingReport(false);
+    }
+  };
+
+  // Admin triggers warning broadcast verification
+  const handleTriggerBroadcast = async (alertId) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/alerts/broadcast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alertId })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAlerts(data.alerts);
+        setLogs(data.logs);
+      }
+    } catch (error) {
+      console.error("Error triggering warning broadcast:", error);
     }
   };
 
@@ -267,12 +295,74 @@ function App() {
             cumulativeSavingsCost={cumulativeSavingsCost}
             zones={zones}
           />
-          <div className="decision-log" style={{ height: '420px', display: 'flex', flexDirection: 'column' }}>
+          
+          {/* Quantitative Industrial KPIs */}
+          <KPIGoalTracker kpis={kpis} />
+
+          <div className="decision-log" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
             <AgentControlLog logs={logs} />
           </div>
-          <div className="bottom-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', height: '500px' }}>
-            <SafetyAlerts alerts={alerts} />
-            <AgentChat onGenerateReport={handleGenerateReport} />
+          
+          <div className="bottom-split" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem', height: '500px' }}>
+            <SafetyAlerts alerts={alerts} onTriggerBroadcast={handleTriggerBroadcast} />
+            
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.25rem', overflow: 'hidden' }}>
+              {/* Tab Selector Header */}
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setActiveRightTab('chat')}
+                  style={{
+                    background: activeRightTab === 'chat' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                    border: '1px solid ' + (activeRightTab === 'chat' ? 'var(--color-green)' : 'transparent'),
+                    color: activeRightTab === 'chat' ? 'var(--color-green)' : 'var(--text-secondary)',
+                    padding: '0.35rem 0.5rem',
+                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  <Sparkles size={12} />
+                  <span>Aegis AI 챗 인터페이스</span>
+                </button>
+                <button
+                  onClick={() => setActiveRightTab('reports')}
+                  style={{
+                    background: activeRightTab === 'reports' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+                    border: '1px solid ' + (activeRightTab === 'reports' ? 'var(--color-cyan)' : 'transparent'),
+                    color: activeRightTab === 'reports' ? 'var(--color-cyan)' : 'var(--text-secondary)',
+                    padding: '0.35rem 0.5rem',
+                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  <FileText size={12} />
+                  <span>보고서 보관함</span>
+                </button>
+              </div>
+
+              {/* Tab Content Area */}
+              <div style={{ flex: 1, minHeight: 0 }}>
+                {activeRightTab === 'chat' ? (
+                  <AgentChat onGenerateReport={handleGenerateReport} />
+                ) : (
+                  <SavedReports 
+                    onPreviewReport={setReportMarkdown} 
+                    refreshTrigger={reportsRefreshTrigger}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </main>

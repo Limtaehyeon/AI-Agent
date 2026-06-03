@@ -9,6 +9,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@google-cloud/vertexai": "^1.12.0",
     "@google/generative-ai": "^0.11.0",
     "better-sqlite3": "^12.10.0",
     "cors": "^2.8.5",

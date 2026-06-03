@@ -1,15 +1,117 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { VertexAI } from '@google-cloud/vertexai';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  console.warn("WARNING: GEMINI_API_KEY is not defined in the environment.");
+let useVertexAi = false;
+let vertexModel = null;
+
+const projectId = process.env.GCP_PROJECT_ID;
+const location = process.env.GCP_LOCATION || 'us-central1';
+
+if (projectId) {
+  try {
+    if (process.env.GCP_KEY_FILE) {
+      const keyPath = path.resolve(__dirname, process.env.GCP_KEY_FILE);
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = keyPath;
+      console.log(`🔑 GCP Credentials key file resolved to: ${keyPath}`);
+    }
+    const vertexAI = new VertexAI({ project: projectId, location: location });
+    vertexModel = vertexAI.getGenerativeModel({
+      model: 'gemini-1.5-flash-002',
+    });
+    useVertexAi = true;
+    console.log(`✅ Vertex AI initialized on GCP. Project: ${projectId}, Location: ${location}`);
+  } catch (err) {
+    console.error("❌ Failed to initialize Vertex AI, falling back to Google AI Studio:", err);
+  }
 }
 
-const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey || 'dummy-key');
+const studioModel = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+// Helper to generate content from either Vertex AI or Google AI Studio
+async function generateContentHelper(prompt, isJson = false) {
+  if (useVertexAi && vertexModel) {
+    try {
+      console.log("Using GCP Vertex AI for content generation...");
+      const request = {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: isJson ? 'application/json' : 'text/plain'
+        }
+      };
+      const result = await vertexModel.generateContent(request);
+      try {
+        return result.response.text();
+      } catch (e) {
+        return result.response.candidates[0].content.parts[0].text;
+      }
+    } catch (vertexError) {
+      console.error("⚠️ GCP Vertex AI failed, falling back to Google AI Studio:", vertexError.message);
+      return callStudioModel(prompt, isJson);
+    }
+  } else {
+    return callStudioModel(prompt, isJson);
+  }
+}
+
+async function callStudioModel(prompt, isJson) {
+  console.log("Using Google AI Studio for content generation...");
+  const request = {
+    contents: [{ role: "user", parts: [{ text: prompt }] }]
+  };
+  if (isJson) {
+    request.generationConfig = { responseMimeType: "application/json" };
+  }
+  const result = await studioModel.generateContent(request);
+  return result.response.text();
+}
+
+// Helper for chat conversations using Vertex AI or Google AI Studio
+async function chatHelper(systemPrompt, formattedHistory, userMessage) {
+  if (useVertexAi && vertexModel) {
+    try {
+      console.log("Using GCP Vertex AI for chat conversation...");
+      const chat = vertexModel.startChat({
+        history: [
+          { role: "user", parts: [{ text: systemPrompt }] },
+          { role: "model", parts: [{ text: "확인했습니다. Aegis Factory 자율 운영 에이전트가 대기 중입니다. 실시간 상태 분석 및 제어 관련하여 어떤 질문이든 답변해 드리겠습니다." }] },
+          ...formattedHistory
+        ]
+      });
+      const result = await chat.sendMessage(userMessage);
+      try {
+        return result.response.text();
+      } catch (e) {
+        return result.response.candidates[0].content.parts[0].text;
+      }
+    } catch (vertexError) {
+      console.error("⚠️ GCP Vertex AI chat failed, falling back to Google AI Studio chat:", vertexError.message);
+      return callStudioChat(systemPrompt, formattedHistory, userMessage);
+    }
+  } else {
+    return callStudioChat(systemPrompt, formattedHistory, userMessage);
+  }
+}
+
+async function callStudioChat(systemPrompt, formattedHistory, userMessage) {
+  console.log("Using Google AI Studio for chat conversation...");
+  const chat = studioModel.startChat({
+    history: [
+      { role: "user", parts: [{ text: systemPrompt }] },
+      { role: "model", parts: [{ text: "확인했습니다. Aegis Factory 자율 운영 에이전트가 대기 중입니다. 실시간 상태 분석 및 제어 관련하여 어떤 질문이든 답변해 드리겠습니다." }] },
+      ...formattedHistory
+    ]
+  });
+  const result = await chat.sendMessage(userMessage);
+  return result.response.text();
+}
 
 /**
  * AI Agent analyzes the factory state and determines control actions for each zone.
@@ -35,9 +137,14 @@ ${JSON.stringify(factoryState, null, 2)}
    - 인원이 없으면 환기팬 속도를 최소화(Off 또는 0%~20%)합니다.
 3. 장비 대기전력:
    - 구역이 비어있는 상태가 지속되면 대기전력 차단 장치(Smart Outlet)를 활성화(Active)하여 불필요한 기기 전력을 차단합니다.
-4. 위험 상황 및 안전 위반 감지 (Safety Event):
-   - 각 구역의 hasHelmetViolation 필드를 확인하여 true인 경우 즉시 안전 위반 경고(safetyAlert)를 발생시키고 전체 요약 및 로그에 이를 반영하세요. (예: "[안전 위반] Zone A 보호구(안전모) 미착용 작업자 감지됨").
-   - 그 외 위험 상황이나 비정상 상태를 실시간 감지하여 경고를 발생시킵니다 (예: 허가되지 않은 무인 구역 침입, 조립 구역/생산 라인 과밀화).
+4. 위험 상황 및 안전 위반 감지 (Safety Event) & 우선순위 결정:
+   - 각 구역의 hasHelmetViolation 필드를 확인하여 true인 경우 즉시 안전 위반 경고(safetyAlert)를 발생시키고 전체 요약 및 로그에 이를 반영하세요.
+     * 우선순위 Level 1 (CRITICAL): 안전모 미착용 등 현장 작업자 신체 안전과 관련된 직접적인 위반 상황.
+     * 우선순위 Level 2 (WARNING): 구역 내 작업 과밀(density가 Crowded인 경우) 또는 비인가 인원 침입 등 이상 징후 상황.
+     * 우선순위 Level 3 (INFO): 일반 센서 변동 또는 자율 에너지 세이빙 기기 자동 제어 관련 정상 상황.
+   - 그 외 위험 상황이나 비정상 상태를 실시간 감지하여 경고를 발생시킵니다.
+5. 설비운영 추천 (Equipment Operation Recommendation):
+   - 각 구역에 구체적으로 어떤 설비를 최적화하여 조작할지(예: 메인 풍량 감축, 예비 조명 디밍, 가스 감지기 작동, 스마트 콘센트 스위칭 등) 텍스트를 작성하십시오.
 
 반드시 다음 JSON 형식으로만 응답해야 합니다. 다른 텍스트는 일체 포함하지 마세요.
 
@@ -51,7 +158,8 @@ JSON 응답 포맷:
         "lights": 100, // 0~100 수치
         "ventilation": 80, // 0~100 수치
         "standbyPowerCut": false // true or false
-      }
+      },
+      "equipmentRecommendation": "설비운영 추천 상세 문구 (한글)"
     },
     ...
   ],
@@ -59,19 +167,13 @@ JSON 응답 포맷:
   "safetyAlert": {
     "hasAlert": false, // 경고 발생 여부
     "level": "info", // "info" | "warning" | "danger"
-    "message": "경고 메시지 내용 (한글)" // 경고가 없으면 null
+    "message": "경고 메시지 내용 (한글). 없으면 null",
+    "priority": 3 // 1: CRITICAL, 2: WARNING, 3: INFO
   }
 }
 `;
 
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
-    });
-
-    const responseText = result.response.text();
+    const responseText = await generateContentHelper(prompt, true);
     return JSON.parse(responseText);
   } catch (error) {
     console.error("Error generating control command from Gemini:", error);
@@ -103,16 +205,8 @@ ${JSON.stringify(factoryState, null, 2)}
 - 에너지 절감 수치나 밀집 상태 등 구체적인 수치를 들어 설명하세요.
 `;
 
-    const chat = model.startChat({
-      history: [
-        { role: "user", parts: [{ text: systemPrompt }] },
-        { role: "model", parts: [{ text: "확인했습니다. Aegis Factory 자율 운영 에이전트가 대기 중입니다. 실시간 상태 분석 및 제어 관련하여 어떤 질문이든 답변해 드리겠습니다." }] },
-        ...formattedHistory
-      ]
-    });
-
-    const result = await chat.sendMessage(userMessage);
-    return result.response.text();
+    const replyText = await chatHelper(systemPrompt, formattedHistory, userMessage);
+    return replyText;
   } catch (error) {
     console.error("Error handling user query:", error);
     
@@ -175,24 +269,24 @@ export async function generateShiftReport(historicalData) {
   try {
     const prompt = `
 Aegis Factory의 일일/교대근무(Shift) 운영 분석 보고서를 생성해야 합니다.
-다음은 지난 24시간 동안 수집된 공장 운영 및 에너지 사용량 데이터 요약입니다.
+다음은 지난 운영 주기 동안 수집된 공장 운영, 에너지 사용량, 그리고 안전 경보 발생 내역 데이터 요약입니다.
 
-[운영 이력 데이터 (24H Summary Data)]
+[운영 이력 데이터 (Summary Data)]
 ${JSON.stringify(historicalData, null, 2)}
 
-위 데이터를 참고하여 공장 관리자에게 제출할 "Aegis Factory 자율 운영 리포트"를 작성하세요.
-보고서는 아래 항목들을 포함해야 합니다:
-1. **보고서 개요** (근무조 정보 및 생성 일시)
-2. **에너지 최적화 성과** (총 전력 소비량, 누적 에너지 절감량, 절감 비용 ₩ 환산, 이전 대비 절감율 % 분석)
-3. **구역별 작업 밀집도 및 운영 통계** (가장 활발했던 구역, 무인 상태가 오래 지속된 구역 등)
-4. **안전 및 위험 이상 상황(Alert) 조치 결과 요약**
-5. **AI Agent 향후 자율 운영 제안 사항** (더 최적화할 여지가 있는 구역 추천 등)
+특히, 다음 사항을 중점적으로 검토해 주세요:
+1. **관리자 경고 방송 검증 (Warning Broadcast Audit)**:
+   - 발생한 L1/L2 안전 경보 중 관리자가 실제로 실시간 무전/경고 방송(Broadcast)을 송출하여 검증(Verified)된 조치가 몇 건 진행되었는지 분석하세요.
+   - 데이터에 포함된 alert 정보에서 'broadcastVerified' 필드 상태를 활용해 대처 수칙 준수율(%)을 평가하고 개선점을 지적하십시오.
+2. **에너지 최적화 성과 (KPI)**: 총 전력 소비량, 누적 에너지 절감량, 절감 비용 ₩ 환산, 이전 대비 절감율 % 분석.
+3. **구역별 작업 밀집도 및 설비 운영 제안**: 가장 활발했던 구역, 에너지 절약에 가장 크게 기여한 구역 등.
+4. **AI Agent의 위험상황 대응 및 구역 설비운영 추천 조치 종합 평가**.
 
 전문적이고 깔끔한 마크다운 양식으로 한국어로 상세하게 작성하세요.
 `;
 
-    const result = await model.generateContent(prompt);
-    return result.response.text();
+    const responseText = await generateContentHelper(prompt, false);
+    return responseText;
   } catch (error) {
     console.error("Error generating shift report:", error);
     
@@ -203,10 +297,10 @@ ${JSON.stringify(historicalData, null, 2)}
       `| ${z.zone} | ${z.workers}명 | ${z.powerKw.toFixed(1)} kW | ${z.lights}% | ${z.ventilation}% |`
     ).join('\n');
     
-    // Format recent alerts safely
+    // Format recent alerts safely with broadcast verification info
     const alertsText = recentAlerts.length === 0 
       ? "* 신규 감지된 위반 및 위험 사항 없음 (정상 가동)"
-      : recentAlerts.map(a => `- **[${a.level.toUpperCase()}]** ${a.timestamp} - ${a.message}`).join('\n');
+      : recentAlerts.map(a => `- **[${a.level.toUpperCase()}]** ${a.timestamp} - ${a.message} (방송 검증: ${a.broadcastVerified ? '✅ 완료' : '⚠️ 대기 중'})`).join('\n');
 
     // Format recent system control logs safely
     const logsText = recentLogs.length === 0
@@ -242,6 +336,8 @@ ${zoneTableRows}
 ## 4. 위험 이상 상황 및 안전 위반 (Alerts)
 ${alertsText}
 
+*관리자 경고 방송 검증 요약: 발생한 경보 중 대응이 완료된 비율을 상시 체크하여 현장 작업 규칙 위반률을 관리합니다.*
+
 ---
 
 ## 5. 최근 AI 자율 운영 제어 기록
@@ -259,6 +355,7 @@ function generateFallbackControl(factoryState) {
     let ventilation = 10;
     let standbyPowerCut = true;
     let reasoning = "";
+    let equipmentRecommendation = "";
 
     if (zone.workers > 0) {
       standbyPowerCut = false;
@@ -266,24 +363,28 @@ function generateFallbackControl(factoryState) {
         lights = 100;
         ventilation = 90;
         reasoning = `작업자 ${zone.workers}명 감지 및 혼잡 상태로, 조명 밝기 최대화(100%) 및 환기 강화(90%) 적용.`;
+        equipmentRecommendation = `${zone.name.split(':')[0]}: 작업 밀집도가 높아 메인 배기 팬 고속 운전(90%) 및 보조 공조 장치 가동을 추천합니다.`;
       } else {
         lights = 70;
         ventilation = 50;
         reasoning = `작업자 ${zone.workers}명 감지(보통 밀집도). 조명 70%, 환기 50% 에너지 최적화 모드 작동.`;
+        equipmentRecommendation = `${zone.name.split(':')[0]}: 적정 밀집도로 송풍 팬 50% 유지를 통한 에너지 세이빙 가동을 추천합니다.`;
       }
     } else {
       reasoning = "해당 구역 내 작업자가 감지되지 않아 조명을 최소화(20%)하고 대기전력을 자동 차단합니다.";
+      equipmentRecommendation = `${zone.name.split(':')[0]}: 무인 대기 상태이므로 조명 디밍(20%) 및 스마트 콘센트를 통한 전체 설비 대기전력 자동 차단을 추천합니다.`;
     }
 
     return {
       zoneId,
       reasoning,
-      actions: { lights, ventilation, standbyPowerCut }
+      actions: { lights, ventilation, standbyPowerCut },
+      equipmentRecommendation
     };
   });
 
   // Simple rule-based safety alert check
-  let safetyAlert = { hasAlert: false, level: "info", message: null };
+  let safetyAlert = { hasAlert: false, level: "info", message: null, priority: 3 };
   const crowdedZones = Object.entries(factoryState.zones)
     .filter(([_, z]) => z.density === "Crowded")
     .map(([id]) => id);
@@ -295,12 +396,14 @@ function generateFallbackControl(factoryState) {
     safetyAlert = {
       hasAlert: true,
       level: "danger",
+      priority: 1,
       message: `[안전 위반] ${helmetViolationZones.join(", ")}에서 보호구(안전모) 미착용 작업자가 감지되었습니다! 즉시 현장 지도 및 경고 방송이 필요합니다.`
     };
   } else if (crowdedZones.length > 0) {
     safetyAlert = {
       hasAlert: true,
       level: "warning",
+      priority: 2,
       message: `${crowdedZones.join(", ")} 구역의 작업 밀집도가 기준치를 초과했습니다. 간격 유지 및 안전 주의가 필요합니다.`
     };
   }
@@ -310,4 +413,4 @@ function generateFallbackControl(factoryState) {
     overallSummary: "백엔드 로컬 룰 기반 자동 에너지 절감 알고리즘 가동 중 (Gemini 예외 처리).",
     safetyAlert
   };
-}
+}// Trigger reload again

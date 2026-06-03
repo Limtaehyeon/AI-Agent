@@ -3,3 +3,5 @@ node_modules/
 .env.local
 dist/
 .DS_Store
+backend/knudc-ith021215-5f16e0652cde.json
+backend/reports/
