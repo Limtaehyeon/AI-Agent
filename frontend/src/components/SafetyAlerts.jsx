@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldAlert, ShieldCheck, Volume2, CheckCircle2, Megaphone, MapPin, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, CheckCircle2, Megaphone } from 'lucide-react';
 
 const parseAlertMessage = (message) => {
   if (!message) return { category: '안전 경보', zones: ['현장 전역'], description: '', action: '상황 확인 및 대응이 필요합니다.' };
@@ -179,41 +179,24 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
                   </span>
                 </div>
 
-                {/* Location Tags Row */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center', marginTop: '0.1rem' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>감지 구역:</span>
-                  {parsed.zones.map((z, idx) => (
-                    <span key={idx} style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.2rem',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '4px',
-                      padding: '1px 6px',
-                      fontSize: '0.75rem',
-                      color: '#fff',
-                      fontWeight: 500
-                    }}>
-                      <MapPin size={10} style={{ color: isDanger ? 'var(--color-red)' : 'var(--color-amber)' }} />
-                      {z}
-                    </span>
-                  ))}
+                {/* Location Info */}
+                <div style={{ 
+                  fontSize: '0.82rem', 
+                  color: '#fff', 
+                  fontWeight: 700, 
+                  marginTop: '0.25rem' 
+                }}>
+                  {parsed.zones.join(', ')}
                 </div>
 
                 {/* Issue Description */}
                 <div style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  color: '#fff',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
                   lineHeight: 1.4,
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.3rem',
-                  marginTop: '0.2rem'
+                  marginTop: '0.15rem'
                 }}>
-                  <AlertTriangle size={14} style={{ color: isDanger ? 'var(--color-red)' : 'var(--color-amber)', flexShrink: 0, marginTop: '0.1rem' }} />
-                  <span>{parsed.description}</span>
+                  {parsed.description}
                 </div>
 
                 {/* Action Card */}
@@ -244,7 +227,8 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
                   borderTop: '1px solid rgba(255, 255, 255, 0.05)',
                   paddingTop: '0.5rem',
                   marginTop: '0.35rem',
-                  fontSize: '0.75rem'
+                  fontSize: '0.75rem',
+                  gap: '1rem'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                     <Megaphone size={12} style={{ color: alert.broadcastVerified ? 'var(--color-green)' : 'var(--color-amber)' }} />
@@ -278,16 +262,16 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
                         gap: '0.3rem',
                         fontWeight: 600,
                         transition: 'all 0.2s',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        marginLeft: 'auto'
                       }}
                       onMouseOver={(e) => { e.currentTarget.style.background = 'var(--color-amber)'; e.currentTarget.style.color = '#000'; }}
                       onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(245, 158, 11, 0.15)'; e.currentTarget.style.color = 'var(--color-amber)'; }}
                     >
-                      <Volume2 size={10} className={broadcastingId === alert.id ? 'fan-spin' : ''} />
                       <span>🔊 경고 방송 송출</span>
                     </button>
                   ) : (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--color-green)', fontWeight: 600, fontSize: '0.7rem' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--color-green)', fontWeight: 600, fontSize: '0.7rem', marginLeft: 'auto' }}>
                       <CheckCircle2 size={12} />
                       <span>방송 송출 완료</span>
                     </span>
