@@ -253,7 +253,7 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange, equ
   const hasSafetyViolation = (workersRef.current[activeZoneId] || []).some(w => !w.hasHelmet);
 
   return (
-    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div className="card-panel-header">
         <div className="card-panel-title">
           <Camera size={18} className="logo-icon" />
@@ -445,7 +445,8 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange, equ
               display: 'flex',
               flexDirection: 'column',
               gap: '0.3rem',
-              flex: 1
+              flex: 1,
+              overflowY: 'auto'
             }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--color-cyan)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                 📋 AI 설비 운영 추천 가이드
@@ -464,7 +465,8 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange, equ
               display: 'flex',
               flexDirection: 'column',
               gap: '0.3rem',
-              flex: 1
+              flex: 1,
+              overflowY: 'auto'
             }}>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
                 🧠 AI 제어 의사결정 근거 (Reasoning)
