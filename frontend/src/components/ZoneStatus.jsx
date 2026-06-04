@@ -35,7 +35,7 @@ const ZoneStatus = ({ zones, activeZoneId, onSelectZone }) => {
         <span className="card-panel-action">실시간 연동 중</span>
       </div>
 
-      <div className="zone-grid">
+      <div className="zone-grid" style={{ flex: 1, display: 'grid' }}>
         {Object.entries(zones).map(([zoneId, zone]) => {
           const isActive = activeZoneId === zoneId;
           const isDanger = zone.density === 'Crowded';
