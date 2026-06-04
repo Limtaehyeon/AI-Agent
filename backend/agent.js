@@ -274,15 +274,26 @@ Aegis Factory의 일일/교대근무(Shift) 운영 분석 보고서를 생성해
 [운영 이력 데이터 (Summary Data)]
 ${JSON.stringify(historicalData, null, 2)}
 
-특히, 다음 사항을 중점적으로 검토해 주세요:
-1. **관리자 경고 방송 검증 (Warning Broadcast Audit)**:
-   - 발생한 L1/L2 안전 경보 중 관리자가 실제로 실시간 무전/경고 방송(Broadcast)을 송출하여 검증(Verified)된 조치가 몇 건 진행되었는지 분석하세요.
-   - 데이터에 포함된 alert 정보에서 'broadcastVerified' 필드 상태를 활용해 대처 수칙 준수율(%)을 평가하고 개선점을 지적하십시오.
-2. **에너지 최적화 성과 (KPI)**: 총 전력 소비량, 누적 에너지 절감량, 절감 비용 ₩ 환산, 이전 대비 절감율 % 분석.
-3. **구역별 작업 밀집도 및 설비 운영 제안**: 가장 활발했던 구역, 에너지 절약에 가장 크게 기여한 구역 등.
-4. **AI Agent의 위험상황 대응 및 구역 설비운영 추천 조치 종합 평가**.
+보고서는 대시보드 내 보고서 뷰어에서 렌더링되므로, 시각적으로 매우 정돈되어 있고 표와 도표(텍스트 기반 차트)를 적극적으로 활용하여 첫눈에 상황이 파악되도록 구성해야 합니다.
 
-전문적이고 깔끔한 마크다운 양식으로 한국어로 상세하게 작성하세요.
+작성 시 다음 레이아웃 가이드를 엄격히 준수해 주세요:
+
+1. **📊 1. 에너지 최적화 성과 (KPI) 요약 표**:
+   - 누적 전력 절감량(kWh), 누적 비용 절감액(원), 탄소 배출 절감량(kg CO2) 등을 포함한 깔끔한 마크다운 표로 작성하세요.
+   - 목표 대비 달성률(%)을 계산하여 텍스트 기반 게이지 바(예: [■■■■■■■□□□] 70%) 형태로 나타내어 시각적 효과를 주십시오. (에너지 절감 목표: 50.0 kWh, 비용 절감 목표: 15,000원)
+
+2. **🏭 2. 구역별 실시간 설비 제어 현황 표**:
+   - 구역명, 인원 수, 현재 전력(kW), 조명 상태(%), 환기 장치 상태(%)를 나타내는 마크다운 표를 포함하세요.
+
+3. **🚨 3. 안전 경보 및 관리자 방송 검증 감사 (Safety Audit)**:
+   - 전체 안전 경보 수량 대비 관리자 방송 검증(broadcastVerified가 true인 항목) 수량의 비율을 계산하여 '안전 수칙 준수율(%)'을 도표 형식으로 표현하세요.
+   - 예시: 준수율: 80% [■■■■■■■■□□]
+   - 각 구역별 안전 위반 내역(시간, 구역, 경보 레벨, 메시지, 방송 검증 여부)을 정리하는 표를 작성하고, 미검증 경보에 대한 조치 필요성을 강력히 권고안으로 기재하세요.
+
+4. **🤖 4. 종합 AI 에이전트 운영 권고사항**:
+   - AI 에이전트가 내린 자율 제어 로그 및 요약 및 개선이 필요한 구역에 대한 3단계 장비 제어 조치(조명 조도 최적화, 환기풍량 조절, 스마트 플러그 차단)를 불릿 포인트로 작성하세요.
+
+전문적이고 깔끔한 마크다운 양식으로 한국어로 상세하게 작성하세요. 모든 소제목 앞에는 관련 이모지를 붙여 주십시오.
 `;
 
     const responseText = await generateContentHelper(prompt, false);
@@ -292,56 +303,92 @@ ${JSON.stringify(historicalData, null, 2)}
     
     const { currentTime, cumulativeSavingsKwh, cumulativeSavingsCost, activeZones, recentAlerts, recentLogs } = historicalData;
     
+    // Helper function for visual text-based progress bar
+    const getProgressBar = (percentage) => {
+      const pct = Math.max(0, Math.min(100, Math.round(percentage)));
+      const filledCount = Math.round(pct / 10);
+      const emptyCount = 10 - filledCount;
+      return `[${'■'.repeat(filledCount)}${'□'.repeat(emptyCount)}] ${pct}%`;
+    };
+
     // Generate dynamic markdown table rows for active zones
     const zoneTableRows = activeZones.map(z => 
       `| ${z.zone} | ${z.workers}명 | ${z.powerKw.toFixed(1)} kW | ${z.lights}% | ${z.ventilation}% |`
     ).join('\n');
     
-    // Format recent alerts safely with broadcast verification info
-    const alertsText = recentAlerts.length === 0 
-      ? "* 신규 감지된 위반 및 위험 사항 없음 (정상 가동)"
-      : recentAlerts.map(a => `- **[${a.level.toUpperCase()}]** ${a.timestamp} - ${a.message} (방송 검증: ${a.broadcastVerified ? '✅ 완료' : '⚠️ 대기 중'})`).join('\n');
+    // Format recent alerts safely as a visual table
+    const alertsTableRows = recentAlerts.length === 0 
+      ? "| - | 정상 운영 중 (감지된 위반 및 위험 사항 없음) | - | - | - |"
+      : recentAlerts.map(a => 
+          `| ${a.timestamp} | ${a.zone} | ${a.level === 'danger' ? '🚨 위험 (L1)' : '⚠️ 경고 (L2)'} | ${a.message} | ${a.broadcastVerified ? '✅ 완료' : '❌ 대기'} |`
+        ).join('\n');
 
-    // Format recent system control logs safely
-    const logsText = recentLogs.length === 0
-      ? "* 최근 수집된 자율 제어 로그가 없습니다."
-      : recentLogs.slice(-5).reverse().map(l => `- [${l.timestamp}] [${l.type.toUpperCase()}] ${l.message}`).join('\n');
+    // Calculate safety compliance rate
+    const totalAlerts = recentAlerts.length;
+    const verifiedAlerts = recentAlerts.filter(a => a.broadcastVerified).length;
+    const complianceRate = totalAlerts > 0 ? Math.round((verifiedAlerts / totalAlerts) * 100) : 100;
 
-    return `# Aegis Factory 일일 자율 운영 보고서
+    // Format recent system control logs safely as a table
+    const logsTableRows = recentLogs.length === 0
+      ? "| - | - | - | 기록된 자율 제어 로그가 없습니다. |"
+      : recentLogs.slice(-6).reverse().map(l => 
+          `| ${l.timestamp} | ${l.zone} | \`${l.type.toUpperCase()}\` | ${l.message} |`
+        ).join('\n');
+
+    return `# 📊 Aegis Factory 일일 자율 운영 보고서
 
 본 보고서는 **Gemini AI 백업 모니터링 엔진**이 실시간 수집된 현장 데이터를 활용하여 작성한 실시간 교대 분석 보고서입니다.
 
-## 1. 보고서 생성 요약
+---
+
+## 📈 1. 보고서 생성 요약
 - **작성 일시**: \`${currentTime}\`
-- **운영 상태**: AI 자율 운영 모드 가동 중 (API 속도 제한으로 인해 로컬 백업 보고서 전환)
+- **운영 상태**: AI 자율 운영 모드 가동 중 (API 로컬 백업 보고서 모드)
 
 ---
 
-## 2. 에너지 최적화 성과 (KPI)
-- **누적 전력 절감량**: \`${cumulativeSavingsKwh.toFixed(1)} kWh\`
-- **누적 비용 절감액**: \`₩${cumulativeSavingsCost.toLocaleString()} 원\`
-- **실시간 기여 지표**: 이산화탄소 약 \` ${(cumulativeSavingsKwh * 0.424).toFixed(2)} kg\` 탄소 배출 절감 효과 달성
+## ⚡ 2. 에너지 최적화 성과 (KPI)
+
+| 지표명 | 현재 실측치 | 성과 목표치 | 목표 달성률 |
+| :--- | :---: | :---: | :---: |
+| **누적 전력 절감량** | \`${cumulativeSavingsKwh.toFixed(1)} kWh\` | \`50.0 kWh\` | \`${Math.round((cumulativeSavingsKwh / 50.0) * 100)}%\` |
+| **누적 비용 절감액** | \`₩${cumulativeSavingsCost.toLocaleString()} 원\` | \`₩15,000 원\` | \`${Math.round((cumulativeSavingsCost / 15000) * 100)}%\` |
+| **탄소 배출 절감량** | \`${(cumulativeSavingsKwh * 0.424).toFixed(2)} kg\` | \`20.00 kg\` | \`${Math.round(((cumulativeSavingsKwh * 0.424) / 20.0) * 100)}%\` |
+
+### 📊 목표 달성 시각화 게이지
+- **에너지 절감량**: \`${getProgressBar((cumulativeSavingsKwh / 50.0) * 100)}\`
+- **비용 누적 절감**: \`${getProgressBar((cumulativeSavingsCost / 15000) * 100)}\`
 
 ---
 
-## 3. 실시간 구역별 설비 운영 현황
-| 구역명 | 작업 인원 | 현재 전력 부하 | 조명 제어 | 환기 속도 |
-| :--- | :--- | :--- | :--- | :--- |
+## 🏭 3. 실시간 구역별 설비 운영 현황
+| 구역명 | 작업 인원 | 현재 전력 부하 | 조명 제어 상태 | 환기 팬 속도 |
+| :--- | :---: | :---: | :---: | :---: |
 ${zoneTableRows}
 
 *※ 인원이 감지되지 않는 비활성 구역은 대기 전력이 스마트 아울렛을 통해 즉각 차단되었으며, 조명 조도가 보안 등급(20% 이하)으로 자동 감축 제어되었습니다.*
 
 ---
 
-## 4. 위험 이상 상황 및 안전 위반 (Alerts)
-${alertsText}
+## 🚨 4. 위험 이상 상황 및 안전 위반 (Alerts)
+- **위험 발생 건수**: 총 \`${totalAlerts}건\`
+- **경고 방송 송출**: \`${verifiedAlerts}건\`
+- **안전 준수율**: \`${complianceRate}%\`
 
-*관리자 경고 방송 검증 요약: 발생한 경보 중 대응이 완료된 비율을 상시 체크하여 현장 작업 규칙 위반률을 관리합니다.*
+### 🛡️ 안전 관리 준수 게이지
+- **준수율**: \`${getProgressBar(complianceRate)}\`
+
+### 📋 최근 알림 상세 내역
+| 시간 | 발생 구역 | 경보 레벨 | 메시지 내용 | 방송 검증 |
+| :--- | :---: | :---: | :--- | :---: |
+${alertsTableRows}
 
 ---
 
-## 5. 최근 AI 자율 운영 제어 기록
-${logsText}
+## 🤖 5. 최근 AI 에이전트 자율 운영 제어 기록
+| 시간 | 대상 구역 | 분류 | 상세 제어 내용 |
+| :--- | :---: | :---: | :--- |
+${logsTableRows}
 `;
   }
 }
