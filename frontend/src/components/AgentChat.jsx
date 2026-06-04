@@ -9,11 +9,16 @@ const AgentChat = ({ onGenerateReport }) => {
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
-  // Auto-scroll chat
+  // Auto-scroll chat within container to avoid page layout shifts
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   };
 
   useEffect(() => {
@@ -118,7 +123,7 @@ const AgentChat = ({ onGenerateReport }) => {
       </div>
 
       {/* Chat Messages Log */}
-      <div className="chat-messages">
+      <div ref={chatContainerRef} className="chat-messages">
         {messages.map((msg, idx) => (
           <div key={idx} className={`chat-bubble ${msg.role}`}>
             {msg.role === 'agent' ? formatAgentReply(msg.text) : msg.text}
@@ -130,7 +135,6 @@ const AgentChat = ({ onGenerateReport }) => {
             <span>Gemini Agent가 상태를 분석하는 중...</span>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Preset Action Buttons */}
