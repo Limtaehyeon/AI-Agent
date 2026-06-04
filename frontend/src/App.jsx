@@ -435,34 +435,149 @@ function App() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          {/* Toggle Aegis AI Chat & Reports Button */}
-          <button
-            className="cctv-btn"
-            onClick={() => setShowChatModal(true)}
-            style={{ 
-              padding: '0.4rem 0.8rem', 
-              fontSize: '0.75rem', 
-              background: 'rgba(6, 182, 212, 0.05)', 
-              borderColor: 'rgba(6, 182, 212, 0.2)', 
-              color: 'var(--color-cyan)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              flex: 'none',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <img 
-              src="/logo.png" 
-              alt="Aegis Icon" 
+          {/* Toggle Aegis AI Chat & Reports Button (Relative Container for Popover) */}
+          <div style={{ position: 'relative' }}>
+            <button
+              className="cctv-btn"
+              onClick={() => setShowChatModal(!showChatModal)}
               style={{ 
-                width: '14px', 
-                height: '14px', 
-                objectFit: 'contain'
-              }} 
-            />
-            <span>AEGIS 챗</span>
-          </button>
+                padding: '0.4rem 0.8rem', 
+                fontSize: '0.75rem', 
+                background: 'rgba(6, 182, 212, 0.05)', 
+                borderColor: 'rgba(6, 182, 212, 0.2)', 
+                color: 'var(--color-cyan)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                flex: 'none',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <img 
+                src="/logo.png" 
+                alt="Aegis Icon" 
+                style={{ 
+                  width: '14px', 
+                  height: '14px', 
+                  objectFit: 'contain'
+                }} 
+              />
+              <span>AEGIS 챗</span>
+            </button>
+
+            {showChatModal && (
+              <div className="aegis-popover" style={{
+                position: 'absolute',
+                top: 'calc(100% + 0.75rem)',
+                right: 0,
+                width: '450px',
+                height: '550px',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                boxShadow: '0 15px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(6, 182, 212, 0.15)',
+                zIndex: 1000,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'visible'
+              }}>
+                {/* Speech Bubble Pointer */}
+                <div style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '36px',
+                  width: '12px',
+                  height: '12px',
+                  backgroundColor: 'var(--bg-card)',
+                  borderLeft: '1px solid var(--border-color)',
+                  borderTop: '1px solid var(--border-color)',
+                  transform: 'rotate(45deg)',
+                  zIndex: 1001
+                }} />
+
+                {/* Popover Header */}
+                <div className="card-panel-header" style={{ margin: 0, padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)', borderTopLeftRadius: '12px', borderTopRightRadius: '12px', background: 'var(--bg-card)' }}>
+                  <div className="card-panel-title" style={{ color: 'var(--color-cyan)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <img 
+                      src="/logo.png" 
+                      alt="Aegis Icon" 
+                      style={{ 
+                        width: '16px', 
+                        height: '16px', 
+                        objectFit: 'contain'
+                      }} 
+                    />
+                    <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>AEGIS 챗 & 보고서</span>
+                  </div>
+                  <button
+                    onClick={() => setShowChatModal(false)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Popover Body */}
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '1rem', overflow: 'hidden', background: 'var(--bg-primary)', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                  {/* Tab Selector Header */}
+                  <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.4rem', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setActiveRightTab('chat')}
+                      style={{
+                        background: activeRightTab === 'chat' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                        border: '1px solid ' + (activeRightTab === 'chat' ? 'var(--color-green)' : 'transparent'),
+                        color: activeRightTab === 'chat' ? 'var(--color-green)' : 'var(--text-secondary)',
+                        padding: '0.25rem 0.4rem',
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <Sparkles size={11} />
+                      <span>Aegis AI 챗</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveRightTab('reports')}
+                      style={{
+                        background: activeRightTab === 'reports' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+                        border: '1px solid ' + (activeRightTab === 'reports' ? 'var(--color-cyan)' : 'transparent'),
+                        color: activeRightTab === 'reports' ? 'var(--color-cyan)' : 'var(--text-secondary)',
+                        padding: '0.25rem 0.4rem',
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <FileText size={11} />
+                      <span>보고서 보관함</span>
+                    </button>
+                  </div>
+
+                  {/* Tab Content Area */}
+                  <div style={{ flex: 1, minHeight: 0 }}>
+                    {activeRightTab === 'chat' ? (
+                      <AgentChat onGenerateReport={handleGenerateReport} />
+                    ) : (
+                      <SavedReports 
+                        onPreviewReport={setReportMarkdown} 
+                        refreshTrigger={reportsRefreshTrigger}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* AI Autonomous Operation Switch */}
           <div className="switch-container">
@@ -547,92 +662,6 @@ function App() {
           </div>
         </div>
       </main>
-
-      {/* Aegis AI Chat & Reports Modal */}
-      {showChatModal && (
-        <div className="report-modal">
-          <div className="report-modal-content" style={{ maxWidth: '750px', height: '70vh' }}>
-            <div className="card-panel-header" style={{ margin: 0, padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-              <div className="card-panel-title" style={{ color: 'var(--color-cyan)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <img 
-                  src="/logo.png" 
-                  alt="Aegis Icon" 
-                  style={{ 
-                    width: '18px', 
-                    height: '18px', 
-                    objectFit: 'contain'
-                  }} 
-                />
-                <span style={{ fontWeight: 600 }}>AEGIS 챗 & 보고서</span>
-              </div>
-              <button
-                onClick={() => setShowChatModal(false)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '1.25rem', overflow: 'hidden', background: 'var(--bg-primary)' }}>
-              {/* Tab Selector Header */}
-              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => setActiveRightTab('chat')}
-                  style={{
-                    background: activeRightTab === 'chat' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                    border: '1px solid ' + (activeRightTab === 'chat' ? 'var(--color-green)' : 'transparent'),
-                    color: activeRightTab === 'chat' ? 'var(--color-green)' : 'var(--text-secondary)',
-                    padding: '0.35rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.7rem',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem'
-                  }}
-                >
-                  <Sparkles size={12} />
-                  <span>Aegis AI 챗 인터페이스</span>
-                </button>
-                <button
-                  onClick={() => setActiveRightTab('reports')}
-                  style={{
-                    background: activeRightTab === 'reports' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
-                    border: '1px solid ' + (activeRightTab === 'reports' ? 'var(--color-cyan)' : 'transparent'),
-                    color: activeRightTab === 'reports' ? 'var(--color-cyan)' : 'var(--text-secondary)',
-                    padding: '0.35rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.7rem',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem'
-                  }}
-                >
-                  <FileText size={12} />
-                  <span>보고서 보관함</span>
-                </button>
-              </div>
-
-              {/* Tab Content Area */}
-              <div style={{ flex: 1, minHeight: 0 }}>
-                {activeRightTab === 'chat' ? (
-                  <AgentChat onGenerateReport={handleGenerateReport} />
-                ) : (
-                  <SavedReports 
-                    onPreviewReport={setReportMarkdown} 
-                    refreshTrigger={reportsRefreshTrigger}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Generating operational report indicator overlay */}
       {isGeneratingReport && (

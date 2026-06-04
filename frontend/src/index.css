@@ -943,3 +943,18 @@ input:checked + .slider-switch:before {
     box-shadow: 0 0 4px rgba(16, 185, 129, 0.2);
   }
 }
+
+@keyframes popover-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.aegis-popover {
+  animation: popover-fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
