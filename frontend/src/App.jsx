@@ -253,7 +253,7 @@ function App() {
             }}
           >
             <MessageSquare size={12} />
-            <span>Aegis AI 챗 & 보관함</span>
+            <span>AEGIS 챗</span>
           </button>
 
           {/* AI Autonomous Operation Switch */}
