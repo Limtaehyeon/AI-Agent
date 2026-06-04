@@ -7,7 +7,7 @@ import SafetyAlerts from './components/SafetyAlerts';
 import AgentChat from './components/AgentChat';
 import KPIGoalTracker from './components/KPIGoalTracker';
 import SavedReports from './components/SavedReports';
-import { Cpu, RefreshCw, Layers, ShieldAlert, Sparkles, FileText, X, Zap, DollarSign, Leaf, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { Cpu, RefreshCw, Layers, ShieldAlert, Sparkles, FileText, X, Zap, DollarSign, Leaf, AlertTriangle, Eye, EyeOff, MessageSquare } from 'lucide-react';
 
 function App() {
   const [zones, setZones] = useState(null);
@@ -23,6 +23,7 @@ function App() {
   const [kpis, setKpis] = useState(null);
   const [activeRightTab, setActiveRightTab] = useState('chat');
   const [reportsRefreshTrigger, setReportsRefreshTrigger] = useState(0);
+  const [showChatModal, setShowChatModal] = useState(false);
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
@@ -236,6 +237,25 @@ function App() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          {/* Toggle Aegis AI Chat & Reports Button */}
+          <button
+            className="cctv-btn"
+            onClick={() => setShowChatModal(true)}
+            style={{ 
+              padding: '0.4rem 0.8rem', 
+              fontSize: '0.75rem', 
+              background: 'rgba(6, 182, 212, 0.05)', 
+              borderColor: 'rgba(6, 182, 212, 0.2)', 
+              color: 'var(--color-cyan)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem'
+            }}
+          >
+            <MessageSquare size={12} />
+            <span>Aegis AI 챗 & 보관함</span>
+          </button>
+
           {/* AI Autonomous Operation Switch */}
           <div className="switch-container">
             <span className="switch-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -303,10 +323,30 @@ function App() {
             <AgentControlLog logs={logs} />
           </div>
           
-          <div className="bottom-split" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem', height: '500px' }}>
+          <div className="bottom-split" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', height: '500px' }}>
             <SafetyAlerts alerts={alerts} onTriggerBroadcast={handleTriggerBroadcast} />
+          </div>
+        </div>
+      </main>
+
+      {/* Aegis AI Chat & Reports Modal */}
+      {showChatModal && (
+        <div className="report-modal">
+          <div className="report-modal-content" style={{ maxWidth: '750px', height: '70vh' }}>
+            <div className="card-panel-header" style={{ margin: 0, padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <div className="card-panel-title" style={{ color: 'var(--color-cyan)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MessageSquare size={18} />
+                <span style={{ fontWeight: 600 }}>Aegis AI 지원 센터</span>
+              </div>
+              <button
+                onClick={() => setShowChatModal(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.25rem', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '1.25rem', overflow: 'hidden', background: 'var(--bg-primary)' }}>
               {/* Tab Selector Header */}
               <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
                 <button
@@ -365,7 +405,7 @@ function App() {
             </div>
           </div>
         </div>
-      </main>
+      )}
 
       {/* Generating operational report indicator overlay */}
       {isGeneratingReport && (
