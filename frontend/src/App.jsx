@@ -630,7 +630,7 @@ function App() {
 
       {/* Grid Dashboard Modules */}
       <main className="dashboard-grid">
-        {/* Left Side: Real-time CCTV analysis & Area sensor details */}
+        {/* Left Side: Real-time CCTV analysis & Safety Operations */}
         <div className="panel-left" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <CCTVPanel
             zones={zones}
@@ -643,9 +643,12 @@ function App() {
             activeZoneId={activeZoneId}
             onSelectZone={setActiveZoneId}
           />
+          <div style={{ flex: 1, minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+            <SafetyAlerts alerts={alerts} onTriggerBroadcast={handleTriggerBroadcast} />
+          </div>
         </div>
 
-        {/* Right Side: Recharts analysis, AI Logs, Alerts, Chatbot */}
+        {/* Right Side: Analytical Charts, KPIs & AI Decisions */}
         <div className="panel-right" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <EnergyCharts
             powerHistory={powerHistory}
@@ -657,12 +660,8 @@ function App() {
           {/* Quantitative Industrial KPIs */}
           <KPIGoalTracker kpis={kpis} />
 
-          <div className="decision-log" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
             <AgentControlLog logs={logs} />
-          </div>
-          
-          <div className="bottom-split" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', height: '500px' }}>
-            <SafetyAlerts alerts={alerts} onTriggerBroadcast={handleTriggerBroadcast} />
           </div>
         </div>
       </main>
