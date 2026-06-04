@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldAlert, ShieldCheck, CheckCircle2, Megaphone } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, CheckCircle2, Megaphone, MapPin } from 'lucide-react';
 
 const parseAlertMessage = (message) => {
   if (!message) return { category: '안전 경보', zones: ['현장 전역'], description: '', action: '상황 확인 및 대응이 필요합니다.' };
@@ -19,30 +19,37 @@ const parseAlertMessage = (message) => {
     category = '밀집도 초과';
   }
 
-  // 2. Extract zones (e.g. Zone C: 조립 구역 (Assembly Area), Zone D)
-  const zoneRegex = /(Zone\s*[A-D](?:\s*:\s*[^,!(]+(?:\([^)]+\))?|\([^)]+\))?)/gi;
-  const matches = text.match(zoneRegex);
+  // 2. Extract zones using known zone names strictly
+  const KNOWN_ZONES = [
+    'Zone A: 생산 라인',
+    'Zone B: 자재 창고',
+    'Zone C: 조립 구역',
+    'Zone D: 검사 및 포장 구역',
+    'Zone D(검사 및 포장)',
+    'Zone A', 'Zone B', 'Zone C', 'Zone D'
+  ];
 
-  if (matches) {
-    zones = matches.map(z => {
-      let cleaned = z.trim();
-      // Remove trailing Korean postpositions or keywords
-      cleaned = cleaned.replace(/(?:에서|의|구역|구역의)$/, '').trim();
-      return cleaned;
-    });
-
-    // Find end of zones to get the rest of text
-    let lastMatchIndex = 0;
-    let lastMatchLen = 0;
-    let match;
-    zoneRegex.lastIndex = 0;
-    while ((match = zoneRegex.exec(text)) !== null) {
-      lastMatchIndex = match.index;
-      lastMatchLen = match[0].length;
+  // Find all matched zones
+  KNOWN_ZONES.forEach(z => {
+    if (text.includes(z)) {
+      // Check if we already matched a longer version of this zone (e.g. Zone A: 생산 라인 already matches Zone A)
+      const alreadyMatched = zones.some(existing => existing.includes(z));
+      if (!alreadyMatched) {
+        zones.push(z);
+      }
     }
+  });
 
-    let rest = text.substring(lastMatchIndex + lastMatchLen).trim();
-    // Clean up leading punctuation or words like "에서", "및", etc.
+  // If we matched zones, extract the description text that follows them.
+  if (zones.length > 0) {
+    // Sort zones by their order of appearance in the text
+    zones.sort((a, b) => text.indexOf(a) - text.indexOf(b));
+
+    const lastZone = zones[zones.length - 1];
+    const lastZoneIndex = text.indexOf(lastZone);
+    let rest = text.substring(lastZoneIndex + lastZone.length).trim();
+
+    // Clean up leading words like "에서", "의", "및", etc.
     rest = rest.replace(/^(?:에서|의|구역의|및|,\s*|에서\s*)+/, '').trim();
     text = rest;
   }
@@ -179,14 +186,25 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
                   </span>
                 </div>
 
-                {/* Location Info */}
-                <div style={{ 
-                  fontSize: '0.82rem', 
-                  color: '#fff', 
-                  fontWeight: 700, 
-                  marginTop: '0.25rem' 
-                }}>
-                  {parsed.zones.join(', ')}
+                {/* Location Tags Row */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center', marginTop: '0.25rem' }}>
+                  {parsed.zones.map((z, idx) => (
+                    <span key={idx} style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.2rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '4px',
+                      padding: '2px 8px',
+                      fontSize: '0.75rem',
+                      color: '#fff',
+                      fontWeight: 600
+                    }}>
+                      <MapPin size={10} style={{ color: isDanger ? 'var(--color-red)' : 'var(--color-amber)' }} />
+                      {z}
+                    </span>
+                  ))}
                 </div>
 
                 {/* Issue Description */}
