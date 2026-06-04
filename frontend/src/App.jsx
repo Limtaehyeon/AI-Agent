@@ -438,7 +438,9 @@ function App() {
               color: 'var(--color-cyan)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.3rem'
+              gap: '0.3rem',
+              flex: 'none',
+              whiteSpace: 'nowrap'
             }}
           >
             <MessageSquare size={12} />
@@ -465,7 +467,18 @@ function App() {
           <button
             className="cctv-btn"
             onClick={handleResetSimulator}
-            style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', background: 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--color-red)' }}
+            style={{ 
+              padding: '0.4rem 0.8rem', 
+              fontSize: '0.75rem', 
+              background: 'rgba(239, 68, 68, 0.05)', 
+              borderColor: 'rgba(239, 68, 68, 0.2)', 
+              color: 'var(--color-red)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              flex: 'none',
+              whiteSpace: 'nowrap'
+            }}
           >
             <RefreshCw size={12} />
             <span>데이터 리셋</span>

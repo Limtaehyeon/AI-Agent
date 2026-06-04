@@ -56,18 +56,18 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
                   marginBottom: '0.5rem'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', width: '100%' }}>
-                  <ShieldAlert size={16} className="alert-item-icon" style={{ marginTop: '0.1rem' }} />
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', width: '100%' }}>
+                  <ShieldAlert size={18} className="alert-item-icon" style={{ marginTop: '0.2rem', flexShrink: 0 }} />
                   <div className="alert-item-content" style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', width: '100%', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1.25rem', width: '100%', alignItems: 'center', marginBottom: '0.35rem' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                         {isDanger ? '🚨 위험 (L1 CRITICAL)' : '⚠️ 경고 (L2 WARNING)'}
                       </span>
-                      <span className="alert-item-time" style={{ fontSize: '0.65rem', opacity: 0.8 }}>
+                      <span className="alert-item-time" style={{ fontSize: '0.7rem', opacity: 0.8, fontFamily: 'var(--font-mono)' }}>
                         {alert.timestamp}
                       </span>
                     </div>
-                    <span style={{ marginTop: '0.2rem', fontSize: '0.75rem', display: 'block', lineHeight: 1.4 }}>
+                    <span style={{ fontSize: '0.8rem', display: 'block', lineHeight: 1.5, color: '#fff', letterSpacing: '0.01em' }}>
                       {alert.message}
                     </span>
                   </div>
@@ -79,19 +79,20 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-                  paddingTop: '0.4rem',
-                  marginTop: '0.25rem',
-                  fontSize: '0.7rem'
+                  paddingTop: '0.5rem',
+                  marginTop: '0.35rem',
+                  fontSize: '0.75rem'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                     <Megaphone size={12} style={{ color: alert.broadcastVerified ? 'var(--color-green)' : 'var(--color-amber)' }} />
                     <span style={{ color: 'var(--text-secondary)' }}>경고 방송 검증 상태:</span>
                     <span style={{
                       fontWeight: 700,
                       color: alert.broadcastVerified ? 'var(--color-green)' : 'var(--color-amber)',
                       background: alert.broadcastVerified ? 'var(--color-green-glow)' : 'rgba(245, 158, 11, 0.1)',
-                      padding: '1px 4px',
-                      borderRadius: '3px'
+                      padding: '2px 6px',
+                      borderRadius: '3px',
+                      fontSize: '0.7rem'
                     }}>
                       {alert.broadcastVerified ? '검증 완료 (VERIFIED)' : '검증 대기중 (PENDING)'}
                     </span>
@@ -106,14 +107,15 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
                         border: '1px solid var(--color-amber)',
                         borderRadius: '4px',
                         color: 'var(--color-amber)',
-                        fontSize: '0.65rem',
-                        padding: '0.2rem 0.5rem',
+                        fontSize: '0.7rem',
+                        padding: '0.25rem 0.6rem',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.25rem',
+                        gap: '0.3rem',
                         fontWeight: 600,
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
                       }}
                       onMouseOver={(e) => { e.currentTarget.style.background = 'var(--color-amber)'; e.currentTarget.style.color = '#000'; }}
                       onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(245, 158, 11, 0.15)'; e.currentTarget.style.color = 'var(--color-amber)'; }}
@@ -122,7 +124,7 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
                       <span>🔊 경고 방송 송출</span>
                     </button>
                   ) : (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--color-green)', fontWeight: 600 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--color-green)', fontWeight: 600, fontSize: '0.7rem' }}>
                       <CheckCircle2 size={12} />
                       <span>방송 송출 완료</span>
                     </span>
