@@ -294,6 +294,7 @@ ${JSON.stringify(historicalData, null, 2)}
    - AI 에이전트가 내린 자율 제어 로그 및 요약 및 개선이 필요한 구역에 대한 3단계 장비 제어 조치(조명 조도 최적화, 환기풍량 조절, 스마트 플러그 차단)를 불릿 포인트로 작성하세요.
 
 전문적이고 깔끔한 마크다운 양식으로 한국어로 상세하게 작성하세요. 모든 소제목 앞에는 관련 이모지를 붙여 주십시오.
+[중요 지침] 보고서 내용 작성 시 마크다운 가로 구분선(---)과 백틱 기호(키보드의 숫자 1 왼쪽에 있는 기호)는 절대로 포함하지 마십시오. 강조나 코드 표기 목적으로도 백틱을 사용하지 말고 순수 텍스트로만 내용을 설명하세요.
 `;
 
     const responseText = await generateContentHelper(prompt, false);
@@ -389,7 +390,7 @@ ${alertsTableRows}
 | 시간 | 대상 구역 | 분류 | 상세 제어 내용 |
 | :--- | :---: | :---: | :--- |
 ${logsTableRows}
-`;
+`.replace(/`/g, '').replace(/^\s*---\s*$/gm, '');
   }
 }
 
@@ -447,11 +448,13 @@ function generateFallbackControl(factoryState) {
       message: `[안전 위반] ${helmetViolationZones.join(", ")}에서 보호구(안전모) 미착용 작업자가 감지되었습니다! 즉시 현장 지도 및 경고 방송이 필요합니다.`
     };
   } else if (crowdedZones.length > 0) {
+    const firstZoneId = crowdedZones[0];
+    const workers = factoryState.zones[firstZoneId].workers;
     safetyAlert = {
       hasAlert: true,
       level: "warning",
       priority: 2,
-      message: `${crowdedZones.join(", ")} 구역의 작업 밀집도가 기준치를 초과했습니다. 간격 유지 및 안전 주의가 필요합니다.`
+      message: `Zone ${firstZoneId.charAt(firstZoneId.length - 1)} 구역의 작업 밀집도 초과 경보 (적정 인원: 3명, 현재: ${workers}명)`
     };
   }
 

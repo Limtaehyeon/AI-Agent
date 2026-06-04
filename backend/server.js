@@ -92,7 +92,7 @@ export let factoryState = {
     { timestamp: new Date(Date.now() - 3600000).toLocaleTimeString(), type: "ai", zone: "ZoneB", message: "Zone B 무인 감지: 조도 20% 자동 디밍 및 환기 속도 10% 감축. 대기전력 차단 장치 활성화." }
   ],
   alerts: [
-    { id: 1, timestamp: new Date(Date.now() - 1800000).toLocaleTimeString(), zone: "ZoneD", level: "warning", message: "Zone D(검사 및 포장) 작업 밀집도 초과 경보 (적정 인원: 3명, 현재: 4명)", broadcastVerified: false }
+    { id: 1, timestamp: new Date(Date.now() - 1800000).toLocaleTimeString(), zone: "ZoneD", level: "warning", message: "Zone D 구역의 작업 밀집도 초과 경보 (적정 인원: 3명, 현재: 4명)", broadcastVerified: false }
   ],
   isAiEnabled: true,
   equipmentRecommendations: {

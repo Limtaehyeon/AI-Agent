@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, AlertTriangle, Users, ShieldAlert } from 'lucide-react';
+import { Camera, AlertTriangle, Users, ShieldAlert, Zap, Wind, Activity } from 'lucide-react';
 
 const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange }) => {
   const canvasRef = useRef(null);
@@ -216,6 +216,39 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange }) =
     };
   }, [activeZoneId, zones]);
 
+  // 1. Estimated Power Change calculation helper
+  const getPowerChange = () => {
+    const workers = activeZone.workers;
+    if (workers === 0) {
+      return { val: '-1.5', unit: 'kW', label: '최대 절감 (무인)', color: 'var(--color-green)' };
+    }
+    if (workers >= 4) {
+      const added = ((workers - 3) * 0.4).toFixed(1);
+      return { val: `+${added}`, unit: 'kW', label: '과밀 부하 증가', color: 'var(--color-red)' };
+    }
+    return { val: '-0.3', unit: 'kW', label: '최적화 절감 중', color: 'var(--color-green)' };
+  };
+
+  // 2. Recommended ventilation level calculation helper
+  const getVentilationRate = () => {
+    const w = activeZone.workers;
+    if (w === 0) return { pct: 10, label: '최소 환기 (무인)' };
+    if (w === 1) return { pct: 25, label: '일반 환기 (저부하)' };
+    if (w === 2) return { pct: 40, label: '적정 환기 (보통)' };
+    if (w === 3) return { pct: 55, label: '적정 환기 (보통)' };
+    if (w === 4) return { pct: 75, label: '집중 환기 (과밀)' };
+    return { pct: 100, label: '최대 환기 (위험)' };
+  };
+
+  // 3. Density hazard level helper
+  const getDensityRisk = () => {
+    const w = activeZone.workers;
+    if (w === 0) return { text: '무인 (EMPTY)', color: 'var(--color-green)', bg: 'var(--color-green-glow)' };
+    if (w >= 1 && w <= 3) return { text: '안전 (NORMAL)', color: 'var(--color-cyan)', bg: 'var(--color-cyan-glow)' };
+    if (w >= 4 && w <= 5) return { text: '과밀 (CROWDED)', color: 'var(--color-amber)', bg: 'var(--color-amber-glow)' };
+    return { text: '위험 (OVERCROWD)', color: 'var(--color-red)', bg: 'var(--color-red-glow)' };
+  };
+
   // Determine if there is a safety helmet violation in the current zone
   const hasSafetyViolation = (workersRef.current[activeZoneId] || []).some(w => !w.hasHelmet);
 
@@ -311,6 +344,192 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange }) =
           <span>0명 (무인 구역)</span>
           <span>4명 (과밀 기준)</span>
           <span>8명 (최대)</span>
+        </div>
+      </div>
+
+      {/* Simulation What-If Impact Predictor */}
+      <div style={{ 
+        marginTop: '1.25rem', 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        minHeight: '220px',
+        background: 'rgba(21, 29, 48, 0.4)', 
+        border: '1px solid var(--border-color)', 
+        borderRadius: '12px',
+        padding: '1.15rem 1.25rem',
+        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+      }}>
+        {/* Header */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)', 
+          paddingBottom: '0.65rem',
+          marginBottom: '1rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-cyan)' }}>
+            <Activity size={16} className="logo-icon" style={{ animationDuration: '3s' }} />
+            <span>실시간 인원 변경에 따른 시뮬레이션 영향 분석기</span>
+          </div>
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+            What-If Predictor
+          </span>
+        </div>
+
+        {/* Prediction Cards Grid */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(3, 1fr)', 
+          gap: '0.85rem',
+          flex: 1
+        }}>
+          {/* Card 1: Estimated Power Impact */}
+          {(() => {
+            const p = getPowerChange();
+            const isSaving = p.val.startsWith('-');
+            return (
+              <div style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>예상 전력 변화</span>
+                  <div style={{ 
+                    width: '24px', 
+                    height: '24px', 
+                    borderRadius: '4px', 
+                    background: isSaving ? 'var(--color-green-glow)' : 'var(--color-red-glow)', 
+                    color: p.color, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <Zap size={12} />
+                  </div>
+                </div>
+                
+                <div style={{ margin: '0.5rem 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.15rem' }}>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', fontFamily: 'var(--font-mono)' }}>{p.val}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{p.unit}</span>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.65rem', color: p.color, fontWeight: 700, borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.4rem' }}>
+                  {p.label}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Card 2: Recommended Ventilation */}
+          {(() => {
+            const v = getVentilationRate();
+            return (
+              <div style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>권장 환기 가동률</span>
+                  <div style={{ 
+                    width: '24px', 
+                    height: '24px', 
+                    borderRadius: '4px', 
+                    background: 'var(--color-cyan-glow)', 
+                    color: 'var(--color-cyan)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <Wind size={12} />
+                  </div>
+                </div>
+                
+                <div style={{ margin: '0.5rem 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.15rem' }}>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', fontFamily: 'var(--font-mono)' }}>{v.pct}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>%</span>
+                  </div>
+                  {/* Mini Progress Bar */}
+                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '0.4rem', overflow: 'hidden' }}>
+                    <div style={{ width: `${v.pct}%`, height: '100%', background: 'var(--color-cyan)', transition: 'width 0.3s ease' }} />
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.4rem' }}>
+                  {v.label}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Card 3: Density Hazard Level */}
+          {(() => {
+            const d = getDensityRisk();
+            return (
+              <div style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>구역 밀집도 등급</span>
+                  <div style={{ 
+                    width: '24px', 
+                    height: '24px', 
+                    borderRadius: '4px', 
+                    background: d.bg, 
+                    color: d.color, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <Users size={12} />
+                  </div>
+                </div>
+                
+                <div style={{ margin: '0.5rem 0' }}>
+                  <span style={{ 
+                    fontSize: '0.85rem', 
+                    fontWeight: 700, 
+                    color: d.color, 
+                    background: d.bg, 
+                    padding: '0.25rem 0.5rem', 
+                    borderRadius: '4px',
+                    border: `1px solid ${d.color}33`,
+                    display: 'inline-block',
+                    fontFamily: 'var(--font-mono)'
+                  }}>
+                    {d.text}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.4rem' }}>
+                  기준: 4명 이상 과밀
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
