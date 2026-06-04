@@ -108,10 +108,6 @@ const KPIGoalTracker = ({ kpis }) => {
           <Target size={18} className="logo-icon" style={{ color: 'var(--color-cyan)' }} />
           <span>산업성 정량적 목표 평가 대시보드</span>
         </div>
-        <span className="card-panel-action" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-          <HelpCircle size={14} style={{ color: 'var(--color-cyan)' }} />
-          카드 위에 마우스를 올리면 평가 기준이 표시됩니다
-        </span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
@@ -193,31 +189,6 @@ const KPIGoalTracker = ({ kpis }) => {
                   }}></div>
                 </div>
               </div>
-
-              {/* Floating Criteria Tooltip Overlay */}
-              {isHovered && (
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  background: 'rgba(16, 21, 36, 0.96)',
-                  borderRadius: '8px',
-                  padding: '0.6rem',
-                  zIndex: 20,
-                  fontSize: '0.65rem',
-                  lineHeight: '1.4',
-                  color: 'var(--text-primary)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  border: `1px solid ${goal.color}`
-                }}>
-                  <strong style={{ color: goal.color, marginBottom: '0.2rem' }}>🔍 산정 기준:</strong>
-                  {goal.criteria}
-                </div>
-              )}
             </div>
           );
         })}
