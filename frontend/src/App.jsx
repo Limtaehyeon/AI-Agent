@@ -436,7 +436,7 @@ function App() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           {/* Toggle Aegis AI Chat & Reports Button (Relative Container for Popover) */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', display: 'inline-flex' }}>
             <button
               className="cctv-btn"
               onClick={() => setShowChatModal(!showChatModal)}
@@ -470,8 +470,8 @@ function App() {
                 position: 'absolute',
                 top: 'calc(100% + 0.75rem)',
                 right: 0,
-                width: '450px',
-                height: '550px',
+                width: '520px',
+                height: '650px',
                 backgroundColor: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '12px',
