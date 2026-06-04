@@ -563,7 +563,7 @@ function App() {
                     objectFit: 'contain'
                   }} 
                 />
-                <span style={{ fontWeight: 600 }}>Aegis AI 지원 센터</span>
+                <span style={{ fontWeight: 600 }}>AEGIS 챗 & 보고서</span>
               </div>
               <button
                 onClick={() => setShowChatModal(false)}
