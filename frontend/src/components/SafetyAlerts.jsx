@@ -1,5 +1,83 @@
 import React, { useState } from 'react';
-import { ShieldAlert, ShieldCheck, Volume2, CheckCircle2, Megaphone } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Volume2, CheckCircle2, Megaphone, MapPin, AlertTriangle } from 'lucide-react';
+
+const parseAlertMessage = (message) => {
+  if (!message) return { category: '안전 경보', zones: ['현장 전역'], description: '', action: '상황 확인 및 대응이 필요합니다.' };
+
+  let category = '안전 경보';
+  let zones = [];
+  let description = '';
+  let action = '';
+
+  // 1. Extract bracketed category (e.g. [안전 위반])
+  let text = message.trim();
+  const bracketMatch = text.match(/^\[([^\]]+)\]/);
+  if (bracketMatch) {
+    category = bracketMatch[1];
+    text = text.replace(/^\[[^\]]+\]\s*/, '').trim();
+  } else if (text.includes('밀집도')) {
+    category = '밀집도 초과';
+  }
+
+  // 2. Extract zones (e.g. Zone C: 조립 구역 (Assembly Area), Zone D)
+  const zoneRegex = /(Zone\s*[A-D](?:\s*:\s*[^,!(]+(?:\([^)]+\))?|\([^)]+\))?)/gi;
+  const matches = text.match(zoneRegex);
+
+  if (matches) {
+    zones = matches.map(z => {
+      let cleaned = z.trim();
+      // Remove trailing Korean postpositions or keywords
+      cleaned = cleaned.replace(/(?:에서|의|구역|구역의)$/, '').trim();
+      return cleaned;
+    });
+
+    // Find end of zones to get the rest of text
+    let lastMatchIndex = 0;
+    let lastMatchLen = 0;
+    let match;
+    zoneRegex.lastIndex = 0;
+    while ((match = zoneRegex.exec(text)) !== null) {
+      lastMatchIndex = match.index;
+      lastMatchLen = match[0].length;
+    }
+
+    let rest = text.substring(lastMatchIndex + lastMatchLen).trim();
+    // Clean up leading punctuation or words like "에서", "및", etc.
+    rest = rest.replace(/^(?:에서|의|구역의|및|,\s*|에서\s*)+/, '').trim();
+    text = rest;
+  }
+
+  // 3. Separate description and action
+  if (text.includes('!')) {
+    const parts = text.split('!');
+    description = parts[0].trim() + '!';
+    action = parts.slice(1).join('!').trim();
+  } else if (text.includes('.')) {
+    const parts = text.split('.');
+    description = parts[0].trim() + '.';
+    action = parts.slice(1).join('.').trim();
+  } else {
+    const parenMatch = text.match(/\(([^)]+)\)$/);
+    if (parenMatch) {
+      action = parenMatch[0];
+      description = text.replace(/\(([^)]+)\)$/, '').trim();
+    } else {
+      description = text;
+      action = '즉시 현장 상황을 파악하고 대처하십시오.';
+    }
+  }
+
+  if (!action) {
+    action = '즉시 현장 상황을 파악하고 대처하십시오.';
+  }
+
+  return {
+    category,
+    zones: zones.length > 0 ? zones : ['현장 전역'],
+    description,
+    action
+  };
+};
 
 const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
   const [broadcastingId, setBroadcastingId] = useState(null);
@@ -24,7 +102,7 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
         </span>
       </div>
 
-      <div className="alerts-list" style={{ overflowY: 'auto', flex: 1 }}>
+      <div className="alerts-list" style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
         {alerts.length === 0 ? (
           <div style={{
             display: 'flex',
@@ -44,6 +122,8 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
         ) : (
           alerts.map((alert) => {
             const isDanger = alert.level === 'danger';
+            const parsed = parseAlertMessage(alert.message);
+
             return (
               <div 
                 key={alert.id} 
@@ -51,25 +131,108 @@ const SafetyAlerts = ({ alerts, onTriggerBroadcast }) => {
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.5rem',
-                  padding: '0.75rem',
-                  marginBottom: '0.5rem'
+                  gap: '0.6rem',
+                  padding: '0.85rem',
+                  marginBottom: '0.65rem',
+                  borderRadius: '8px',
+                  background: isDanger ? 'rgba(239, 68, 68, 0.04)' : 'rgba(245, 158, 11, 0.04)',
+                  border: `1px solid ${isDanger ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)'}`
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', width: '100%' }}>
-                  <ShieldAlert size={18} className="alert-item-icon" style={{ marginTop: '0.2rem', flexShrink: 0 }} />
-                  <div className="alert-item-content" style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1.25rem', width: '100%', alignItems: 'center', marginBottom: '0.35rem' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                        {isDanger ? '🚨 위험 (L1 CRITICAL)' : '⚠️ 경고 (L2 WARNING)'}
-                      </span>
-                      <span className="alert-item-time" style={{ fontSize: '0.7rem', opacity: 0.8, fontFamily: 'var(--font-mono)' }}>
-                        {alert.timestamp}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '0.8rem', display: 'block', lineHeight: 1.5, color: '#fff', letterSpacing: '0.01em' }}>
-                      {alert.message}
+                {/* Header Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {/* Severity Badge */}
+                    <span style={{
+                      fontWeight: 700,
+                      fontSize: '0.7rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.02em',
+                      background: isDanger ? 'rgba(239, 68, 68, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                      border: `1px solid ${isDanger ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                      color: isDanger ? 'var(--color-red)' : 'var(--color-amber)',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.2rem'
+                    }}>
+                      <span>{isDanger ? '🚨 위험' : '⚠️ 경고'}</span>
                     </span>
+
+                    {/* Category Badge */}
+                    <span style={{
+                      fontWeight: 700,
+                      fontSize: '0.7rem',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: 'var(--text-secondary)',
+                      padding: '2px 6px',
+                      borderRadius: '4px'
+                    }}>
+                      {parsed.category}
+                    </span>
+                  </div>
+
+                  <span className="alert-item-time" style={{ fontSize: '0.7rem', opacity: 0.8, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                    {alert.timestamp}
+                  </span>
+                </div>
+
+                {/* Location Tags Row */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center', marginTop: '0.1rem' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>감지 구역:</span>
+                  {parsed.zones.map((z, idx) => (
+                    <span key={idx} style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.2rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '4px',
+                      padding: '1px 6px',
+                      fontSize: '0.75rem',
+                      color: '#fff',
+                      fontWeight: 500
+                    }}>
+                      <MapPin size={10} style={{ color: isDanger ? 'var(--color-red)' : 'var(--color-amber)' }} />
+                      {z}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Issue Description */}
+                <div style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  color: '#fff',
+                  lineHeight: 1.4,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.3rem',
+                  marginTop: '0.2rem'
+                }}>
+                  <AlertTriangle size={14} style={{ color: isDanger ? 'var(--color-red)' : 'var(--color-amber)', flexShrink: 0, marginTop: '0.1rem' }} />
+                  <span>{parsed.description}</span>
+                </div>
+
+                {/* Action Card */}
+                <div style={{
+                  background: isDanger ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                  borderLeft: `3px solid ${isDanger ? 'var(--color-red)' : 'var(--color-amber)'}`,
+                  padding: '0.45rem 0.6rem',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  color: isDanger ? '#fee2e2' : '#fef3c7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  marginTop: '0.1rem'
+                }}>
+                  <Megaphone size={12} style={{ flexShrink: 0, color: isDanger ? 'var(--color-red)' : 'var(--color-amber)' }} />
+                  <div style={{ lineHeight: 1.35 }}>
+                    <span style={{ fontWeight: 700, marginRight: '0.25rem' }}>현장 대응 지침:</span>
+                    {parsed.action}
                   </div>
                 </div>
 
