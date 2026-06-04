@@ -220,7 +220,7 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange }) =
   const hasSafetyViolation = (workersRef.current[activeZoneId] || []).some(w => !w.hasHelmet);
 
   return (
-    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', height: 'auto' }}>
+    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="card-panel-header">
         <div className="card-panel-title">
           <Camera size={18} className="logo-icon" />

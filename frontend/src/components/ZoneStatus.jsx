@@ -15,7 +15,7 @@ const ZoneStatus = ({ zones, activeZoneId, onSelectZone }) => {
   };
 
   return (
-    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', height: 'auto' }}>
+    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Dynamic inline styles for rotating fan icons */}
       <style>{`
         @keyframes spin {
