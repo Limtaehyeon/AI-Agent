@@ -351,8 +351,12 @@ function App() {
   const formatReportMarkdown = (text) => {
     if (!text) return '';
 
+    // Remove all backticks and markdown horizontal dividers (---)
+    let processedText = text
+      .replace(/`/g, '')                 // Remove all backticks
+      .replace(/^\s*---\s*$/gm, '');     // Remove horizontal dividers
+
     // Replace text progress bars [■■■■■□□□□□] 50% with styled HTML badges
-    let processedText = text;
     const progressRegex = /\[([■□█░]*?)\]\s*(\d+)%/g;
     processedText = processedText.replace(progressRegex, (match, blocks, pct) => {
       return `<span class="report-badge-pill">${pct}% 달성</span>`;
@@ -417,7 +421,7 @@ function App() {
       <header className="dashboard-header">
         <div className="header-title-container">
           <img 
-            src="/logo.png" 
+            src="logo.png" 
             alt="Aegis Factory Logo" 
             style={{ 
               width: '32px', 
@@ -458,7 +462,7 @@ function App() {
               }}
             >
               <img 
-                src="/logo.png" 
+                src="logo.png" 
                 alt="Aegis Icon" 
                 style={{ 
                   width: '14px', 
@@ -503,7 +507,7 @@ function App() {
                 <div className="card-panel-header" style={{ margin: 0, padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)', borderTopLeftRadius: '12px', borderTopRightRadius: '12px', background: 'var(--bg-card)' }}>
                   <div className="card-panel-title" style={{ color: 'var(--color-cyan)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <img 
-                      src="/logo.png" 
+                      src="logo.png" 
                       alt="Aegis Icon" 
                       style={{ 
                         width: '16px', 
