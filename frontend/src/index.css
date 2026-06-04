@@ -867,20 +867,66 @@ input:checked + .slider-switch:before {
   margin-bottom: 1rem;
 }
 
+/* Beautiful table design inside report modal */
 .report-modal-body table {
   width: 100%;
-  border-collapse: collapse;
-  margin: 1rem 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.25rem 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .report-modal-body th, .report-modal-body td {
-  border: 1px solid var(--border-color);
-  padding: 8px;
+  padding: 0.65rem 0.85rem;
   text-align: left;
+  border: none;
+  font-size: 0.75rem;
 }
 
 .report-modal-body th {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.report-modal-body td {
+  background: rgba(255, 255, 255, 0.01);
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.report-modal-body tr:last-child td {
+  border-bottom: none;
+}
+
+.report-inline-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 120px;
+  height: 8px;
   background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  position: relative;
+  margin: 0.2rem 0;
+  vertical-align: middle;
+}
+
+.report-inline-progress-bar {
+  height: 100%;
+  background: var(--color-green);
+  border-radius: 4px;
+  box-shadow: 0 0 6px var(--color-green);
+}
+
+.report-inline-progress-text {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-green);
+  font-family: var(--font-mono);
 }
 
 /* Animations */

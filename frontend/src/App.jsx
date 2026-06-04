@@ -8,6 +8,158 @@ import AgentChat from './components/AgentChat';
 import KPIGoalTracker from './components/KPIGoalTracker';
 import SavedReports from './components/SavedReports';
 import { Cpu, RefreshCw, Layers, ShieldAlert, Sparkles, FileText, X, Zap, DollarSign, Leaf, AlertTriangle, Eye, EyeOff, MessageSquare } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as ChartTooltip, Cell } from 'recharts';
+
+// Helper component for glowing circular progress ring
+const ProgressRing = ({ percentage, color, title, subtitle }) => {
+  const pct = Math.max(0, Math.min(100, Math.round(percentage)));
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (pct / 100) * circumference;
+
+  return (
+    <div style={{
+      background: 'var(--bg-secondary)',
+      border: '1px solid var(--border-color)',
+      borderRadius: '12px',
+      padding: '0.85rem 1rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.75rem',
+      flex: 1,
+      minWidth: '220px'
+    }}>
+      <div style={{ position: 'relative', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <svg style={{ transform: 'rotate(-90deg)', width: '70px', height: '70px' }}>
+          <circle
+            cx="35"
+            cy="35"
+            r={radius}
+            fill="transparent"
+            stroke="rgba(255,255,255,0.03)"
+            strokeWidth="5"
+          />
+          <circle
+            cx="35"
+            cy="35"
+            r={radius}
+            fill="transparent"
+            stroke={color}
+            strokeWidth="5"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            style={{
+              transition: 'stroke-dashoffset 0.6s ease-in-out',
+              filter: `drop-shadow(0 0 3px ${color})`
+            }}
+          />
+        </svg>
+        <span style={{ position: 'absolute', fontSize: '0.75rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', color: '#fff' }}>
+          {pct}%
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>{title}</span>
+        <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#fff' }}>{subtitle}</span>
+      </div>
+    </div>
+  );
+};
+
+// Helper component for visual bar chart comparing zone load inside the report
+const ReportZoneChart = ({ zoneData }) => {
+  if (!zoneData || zoneData.length === 0) return null;
+
+  return (
+    <div style={{
+      background: 'var(--bg-secondary)',
+      border: '1px solid var(--border-color)',
+      borderRadius: '12px',
+      padding: '1rem 1.25rem',
+      margin: '0.5rem 0 1.25rem 0',
+      height: '220px',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.75rem', display: 'block' }}>
+        📊 구역별 실시간 전력 부하 비교 (단위: kW)
+      </span>
+      <div style={{ width: '100%', flex: 1, minHeight: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={zoneData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+            <XAxis 
+              dataKey="name" 
+              stroke="var(--text-muted)" 
+              fontSize={10} 
+              tickLine={false} 
+            />
+            <YAxis 
+              stroke="var(--text-muted)" 
+              fontSize={10} 
+              tickLine={false} 
+              axisLine={false} 
+            />
+            <ChartTooltip 
+              contentStyle={{ background: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '6px', fontSize: '10px', color: '#fff' }} 
+              labelStyle={{ color: 'var(--color-cyan)', fontWeight: 'bold' }}
+            />
+            <Bar dataKey="power" radius={[4, 4, 0, 0]}>
+              {zoneData.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.power > 15 ? 'var(--color-red)' : 'var(--color-cyan)'} 
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
+// Parser to extract numbers and table data from markdown report text
+const parseReportData = (text) => {
+  if (!text) return null;
+  
+  // 1. Extract KPI values using regular expressions
+  const kwhMatch = text.match(/([\d.]+)\s*kWh/);
+  const costMatch = text.match(/₩([\d,]+)\s*원?/);
+  const carbonMatch = text.match(/([\d.]+)\s*kg/);
+  
+  const kpiSavingsKwh = kwhMatch ? parseFloat(kwhMatch[1]) : 0;
+  const kpiSavingsCost = costMatch ? parseInt(costMatch[1].replace(/[^\d]/g, '')) : 0;
+  const carbonSavings = carbonMatch ? parseFloat(carbonMatch[1]) : 0;
+  
+  // 2. Extract zone table rows
+  const zoneData = [];
+  const lines = text.split('\n');
+  lines.forEach(line => {
+    const match = line.match(/^\|\s*([^|:]+?)\s*\|\s*(\d+)명\s*\|\s*([\d.]+)\s*kW\s*\|\s*(\d+)%\s*\|\s*(\d+)%\s*\|/);
+    if (match) {
+      zoneData.push({
+        name: match[1].trim(),
+        workers: parseInt(match[2]),
+        power: parseFloat(match[3]),
+        lights: parseInt(match[4]),
+        ventilation: parseInt(match[5])
+      });
+    }
+  });
+  
+  // 3. Extract safety compliance rate
+  const complianceMatch = text.match(/준수율\s*:\s*(\d+)%/i) || text.match(/준수율.*?\s*(\d+)%/);
+  const complianceRate = complianceMatch ? parseInt(complianceMatch[1]) : 100;
+  
+  return {
+    kpiSavingsKwh,
+    kpiSavingsCost,
+    carbonSavings,
+    zoneData,
+    complianceRate
+  };
+};
 
 function App() {
   const [zones, setZones] = useState(null);
@@ -24,8 +176,19 @@ function App() {
   const [activeRightTab, setActiveRightTab] = useState('chat');
   const [reportsRefreshTrigger, setReportsRefreshTrigger] = useState(0);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [parsedData, setParsedData] = useState(null);
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050';
+
+  // Parse report data when reportMarkdown is set or updated
+  useEffect(() => {
+    if (reportMarkdown) {
+      const data = parseReportData(reportMarkdown);
+      setParsedData(data);
+    } else {
+      setParsedData(null);
+    }
+  }, [reportMarkdown]);
 
   // Fetch factory status from backend Express API
   const fetchState = async () => {
@@ -169,7 +332,18 @@ function App() {
   // Simple HTML renderer for markdown report modal content
   const formatReportMarkdown = (text) => {
     if (!text) return '';
-    let html = text
+
+    // Replace text progress bars [■■■■■□□□□□] 50% with styled HTML elements
+    let processedText = text;
+    const progressRegex = /\[([■□█░]*?)\]\s*(\d+)%/g;
+    processedText = processedText.replace(progressRegex, (match, blocks, pct) => {
+      return `<div class="report-inline-progress">
+        <div class="report-inline-progress-bar" style="width: ${pct}%"></div>
+        <span class="report-inline-progress-text">${pct}%</span>
+      </div>`;
+    });
+
+    let html = processedText
       .replace(/^#\s+(.*?)$/gm, '<h1>$1</h1>')
       .replace(/^##\s+(.*?)$/gm, '<h2>$1</h2>')
       .replace(/^###\s+(.*?)$/gm, '<h3>$1</h3>')
@@ -422,7 +596,7 @@ function App() {
       {/* Report Viewer Overlay Modal */}
       {reportMarkdown && (
         <div className="report-modal">
-          <div className="report-modal-content">
+          <div className="report-modal-content" style={{ maxWidth: '850px', height: '85vh' }}>
             <div className="card-panel-header" style={{ margin: 0, padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
               <div className="card-panel-title" style={{ color: 'var(--color-green)' }}>
                 <FileText size={18} />
@@ -436,6 +610,41 @@ function App() {
               </button>
             </div>
             <div className="report-modal-body">
+              {/* Dynamic Interactive Visual Dashboard View */}
+              {parsedData && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#fff', marginBottom: '0.25rem' }}>
+                    📈 실시간 데이터 시각화 보드 (Interactive Widgets)
+                  </div>
+                  
+                  {/* Circular Progress Rings Grid */}
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%' }}>
+                    <ProgressRing 
+                      percentage={(parsedData.kpiSavingsKwh / 50.0) * 100} 
+                      color="var(--color-green)" 
+                      title="전력 절감 성과 (목표: 50.0 kWh)" 
+                      subtitle={`${parsedData.kpiSavingsKwh.toFixed(1)} kWh`}
+                    />
+                    <ProgressRing 
+                      percentage={(parsedData.kpiSavingsCost / 15000) * 100} 
+                      color="var(--color-cyan)" 
+                      title="비용 절감 성과 (목표: ₩15,000)" 
+                      subtitle={`₩${parsedData.kpiSavingsCost.toLocaleString()}`}
+                    />
+                    <ProgressRing 
+                      percentage={parsedData.complianceRate} 
+                      color={parsedData.complianceRate >= 80 ? 'var(--color-green)' : 'var(--color-amber)'} 
+                      title="안전 수칙 준수율 (목표: 100%)" 
+                      subtitle={`${parsedData.complianceRate}%`}
+                    />
+                  </div>
+
+                  {/* Dynamic Recharts Bar Chart comparing active zone loads */}
+                  <ReportZoneChart zoneData={parsedData.zoneData} />
+                </div>
+              )}
+
+              {/* Standard Markdown Content */}
               {formatReportMarkdown(reportMarkdown)}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)' }}>
