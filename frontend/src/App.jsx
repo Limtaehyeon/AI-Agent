@@ -195,6 +195,7 @@ function App() {
   const [reportsRefreshTrigger, setReportsRefreshTrigger] = useState(0);
   const [showChatModal, setShowChatModal] = useState(false);
   const [parsedData, setParsedData] = useState(null);
+  const [equipmentRecommendations, setEquipmentRecommendations] = useState({});
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
@@ -223,6 +224,7 @@ function App() {
       setAlerts(data.alerts);
       setIsAiEnabled(data.isAiEnabled);
       setKpis(data.kpis);
+      setEquipmentRecommendations(data.equipmentRecommendations || {});
     } catch (error) {
       console.error("Error fetching factory state:", error);
     }
@@ -262,6 +264,9 @@ function App() {
         // 2. Sync with backend state
         setZones(data.zones);
         setLogs(data.logs);
+        if (data.equipmentRecommendations) {
+          setEquipmentRecommendations(data.equipmentRecommendations);
+        }
       }
     } catch (error) {
       console.error("Error updating worker count:", error);
@@ -283,6 +288,9 @@ function App() {
         const data = await response.json();
         setLogs(data.logs);
         setIsAiEnabled(data.isAiEnabled);
+        if (data.equipmentRecommendations) {
+          setEquipmentRecommendations(data.equipmentRecommendations);
+        }
       }
     } catch (error) {
       console.error("Error toggling AI Mode:", error);
@@ -301,6 +309,9 @@ function App() {
         setLogs(data.logs);
         setAlerts(data.alerts);
         if (data.kpis) setKpis(data.kpis);
+        if (data.equipmentRecommendations) {
+          setEquipmentRecommendations(data.equipmentRecommendations);
+        }
         setReportsRefreshTrigger(prev => prev + 1);
       }
     } catch (error) {
@@ -641,6 +652,9 @@ function App() {
             activeZoneId={activeZoneId}
             onZoneChange={setActiveZoneId}
             onWorkerCountChange={handleWorkerCountChange}
+            equipmentRecommendations={equipmentRecommendations}
+            isAiEnabled={isAiEnabled}
+            logs={logs}
           />
           <ZoneStatus
             zones={zones}

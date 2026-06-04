@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Camera, AlertTriangle, Users, ShieldAlert, Zap, Wind, Activity } from 'lucide-react';
 
-const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange }) => {
+const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange, equipmentRecommendations = {}, isAiEnabled, logs = [] }) => {
   const canvasRef = useRef(null);
   const [frame, setFrame] = useState(0);
   const workersRef = useRef({});
@@ -347,7 +347,7 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange }) =
         </div>
       </div>
 
-      {/* Simulation What-If Impact Predictor */}
+      {/* Aegis AI Real-time Equipment Control & Recommendation Analyzer */}
       <div style={{ 
         marginTop: '1.25rem', 
         flex: 1, 
@@ -369,167 +369,122 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange }) =
           paddingBottom: '0.65rem',
           marginBottom: '1rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-cyan)' }}>
-            <Activity size={16} className="logo-icon" style={{ animationDuration: '3s' }} />
-            <span>실시간 인원 변경에 따른 시뮬레이션 영향 분석기</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-green)' }}>
+            <Activity size={16} className="logo-icon" style={{ color: 'var(--color-green)', animationDuration: '3s' }} />
+            <span>실시간 AI 설비 운영 추천 및 제어 분석기</span>
           </div>
           <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-            What-If Predictor
+            Aegis AI Analyzer
           </span>
         </div>
 
-        {/* Prediction Cards Grid */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)', 
-          gap: '0.85rem',
-          flex: 1
-        }}>
-          {/* Card 1: Estimated Power Impact */}
-          {(() => {
-            const p = getPowerChange();
-            const isSaving = p.val.startsWith('-');
-            return (
-              <div style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '0.85rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'all 0.3s ease'
+        {/* Content Columns */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '1rem', flex: 1 }}>
+          
+          {/* Left Column: Real-time Control State */}
+          <div style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid rgba(255, 255, 255, 0.03)',
+            borderRadius: '8px',
+            padding: '0.85rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.6rem',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-cyan)', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.4rem', marginBottom: '0.2rem' }}>
+              ⚡ {activeZone.name.split(':')[0]} 설비 제어 상태
+            </div>
+            
+            {/* Lights */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>💡 조명 밝기</span>
+              <span style={{ fontWeight: 700, color: activeZone.lights > 20 ? 'var(--color-amber)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                {activeZone.lights}%
+              </span>
+            </div>
+            {/* Ventilation */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>🌀 환기 속도</span>
+              <span style={{ fontWeight: 700, color: activeZone.ventilation > 0 ? 'var(--color-cyan)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                {activeZone.ventilation}%
+              </span>
+            </div>
+            {/* Standby Power */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>🔌 대기전력 차단</span>
+              <span style={{
+                fontWeight: 700,
+                fontSize: '0.65rem',
+                color: activeZone.standbyPowerCut ? 'var(--color-green)' : 'var(--text-muted)',
+                background: activeZone.standbyPowerCut ? 'var(--color-green-glow)' : 'transparent',
+                padding: activeZone.standbyPowerCut ? '1px 4px' : '0',
+                borderRadius: '2px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>예상 전력 변화</span>
-                  <div style={{ 
-                    width: '24px', 
-                    height: '24px', 
-                    borderRadius: '4px', 
-                    background: isSaving ? 'var(--color-green-glow)' : 'var(--color-red-glow)', 
-                    color: p.color, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                  }}>
-                    <Zap size={12} />
-                  </div>
-                </div>
-                
-                <div style={{ margin: '0.5rem 0' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.15rem' }}>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', fontFamily: 'var(--font-mono)' }}>{p.val}</span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{p.unit}</span>
-                  </div>
-                </div>
+                {activeZone.standbyPowerCut ? "ACTIVE" : "STANDBY"}
+              </span>
+            </div>
+            {/* Mode status */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.4rem', marginTop: '0.2rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>제어 방식</span>
+              <span style={{ color: isAiEnabled ? 'var(--color-green)' : 'var(--color-amber)', fontWeight: 700 }}>
+                {isAiEnabled ? "🤖 AI 자율 최적화" : "⚙️ 수동 오버라이드"}
+              </span>
+            </div>
+          </div>
 
-                <div style={{ fontSize: '0.65rem', color: p.color, fontWeight: 700, borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.4rem' }}>
-                  {p.label}
-                </div>
+          {/* Right Column: AI Operational Recommendation & Reasoning */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', justifyContent: 'space-between' }}>
+            
+            {/* Recommendation */}
+            <div style={{
+              background: 'rgba(6, 182, 212, 0.03)',
+              border: '1px solid rgba(6, 182, 212, 0.15)',
+              borderRadius: '8px',
+              padding: '0.75rem 0.85rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.3rem',
+              flex: 1
+            }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-cyan)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                📋 AI 설비 운영 추천 가이드
               </div>
-            );
-          })()}
-
-          {/* Card 2: Recommended Ventilation */}
-          {(() => {
-            const v = getVentilationRate();
-            return (
-              <div style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '0.85rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'all 0.3s ease'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>권장 환기 가동률</span>
-                  <div style={{ 
-                    width: '24px', 
-                    height: '24px', 
-                    borderRadius: '4px', 
-                    background: 'var(--color-cyan-glow)', 
-                    color: 'var(--color-cyan)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                  }}>
-                    <Wind size={12} />
-                  </div>
-                </div>
-                
-                <div style={{ margin: '0.5rem 0' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.15rem' }}>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', fontFamily: 'var(--font-mono)' }}>{v.pct}</span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>%</span>
-                  </div>
-                  {/* Mini Progress Bar */}
-                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '0.4rem', overflow: 'hidden' }}>
-                    <div style={{ width: `${v.pct}%`, height: '100%', background: 'var(--color-cyan)', transition: 'width 0.3s ease' }} />
-                  </div>
-                </div>
-
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.4rem' }}>
-                  {v.label}
-                </div>
+              <div style={{ fontSize: '0.75rem', color: '#fff', lineHeight: 1.45, fontWeight: 500 }}>
+                {equipmentRecommendations[activeZoneId] || "분석 대기 중... AI 에이전트가 상태를 확인하고 조치 가이드를 구성하고 있습니다."}
               </div>
-            );
-          })()}
+            </div>
 
-          {/* Card 3: Density Hazard Level */}
-          {(() => {
-            const d = getDensityRisk();
-            return (
-              <div style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '0.85rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'all 0.3s ease'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>구역 밀집도 등급</span>
-                  <div style={{ 
-                    width: '24px', 
-                    height: '24px', 
-                    borderRadius: '4px', 
-                    background: d.bg, 
-                    color: d.color, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                  }}>
-                    <Users size={12} />
-                  </div>
-                </div>
-                
-                <div style={{ margin: '0.5rem 0' }}>
-                  <span style={{ 
-                    fontSize: '0.85rem', 
-                    fontWeight: 700, 
-                    color: d.color, 
-                    background: d.bg, 
-                    padding: '0.25rem 0.5rem', 
-                    borderRadius: '4px',
-                    border: `1px solid ${d.color}33`,
-                    display: 'inline-block',
-                    fontFamily: 'var(--font-mono)'
-                  }}>
-                    {d.text}
-                  </span>
-                </div>
-
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.4rem' }}>
-                  기준: 4명 이상 과밀
-                </div>
+            {/* Reasoning / Latest Decision Log */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.01)',
+              border: '1px solid rgba(255, 255, 255, 0.04)',
+              borderRadius: '8px',
+              padding: '0.75rem 0.85rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.3rem',
+              flex: 1
+            }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                🧠 AI 제어 의사결정 근거 (Reasoning)
               </div>
-            );
-          })()}
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.45, fontStyle: 'italic' }}>
+                {(() => {
+                  const zoneLogs = logs.filter(l => l.zone === activeZoneId);
+                  const latestLog = zoneLogs[zoneLogs.length - 1];
+                  if (latestLog) {
+                    if (latestLog.message.includes("사유: ")) {
+                      return latestLog.message.split("사유: ")[1];
+                    }
+                    return latestLog.message;
+                  }
+                  return "대기 중: 해당 구역에 대한 최근 AI 자율제어 의사결정 기록이 없습니다.";
+                })()}
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
