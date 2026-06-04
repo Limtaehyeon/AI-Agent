@@ -15,7 +15,7 @@ const ZoneStatus = ({ zones, activeZoneId, onSelectZone }) => {
   };
 
   return (
-    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', height: 'auto' }}>
+    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* Dynamic inline styles for rotating fan icons */}
       <style>{`
         @keyframes spin {
@@ -35,7 +35,7 @@ const ZoneStatus = ({ zones, activeZoneId, onSelectZone }) => {
         <span className="card-panel-action">실시간 연동 중</span>
       </div>
 
-      <div className="zone-grid" style={{ flex: 1 }}>
+      <div className="zone-grid">
         {Object.entries(zones).map(([zoneId, zone]) => {
           const isActive = activeZoneId === zoneId;
           const isDanger = zone.density === 'Crowded';

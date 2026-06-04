@@ -253,7 +253,7 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange, equ
   const hasSafetyViolation = (workersRef.current[activeZoneId] || []).some(w => !w.hasHelmet);
 
   return (
-    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+    <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', height: 'auto' }}>
       <div className="card-panel-header">
         <div className="card-panel-title">
           <Camera size={18} className="logo-icon" />
@@ -350,7 +350,6 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange, equ
       {/* Aegis AI Real-time Equipment Control & Recommendation Analyzer */}
       <div style={{ 
         marginTop: '1.25rem', 
-        flex: 1, 
         display: 'flex', 
         flexDirection: 'column', 
         minHeight: '220px',
