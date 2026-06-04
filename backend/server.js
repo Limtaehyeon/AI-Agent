@@ -17,10 +17,10 @@ app.use(express.json());
 
 // --- IN-MEMORY FACTORY SIMULATION STATE ---
 const ZONE_NAMES = {
-  ZoneA: "Zone A: 생산 라인 (Production Line)",
-  ZoneB: "Zone B: 자재 창고 (Material Warehouse)",
-  ZoneC: "Zone C: 조립 구역 (Assembly Area)",
-  ZoneD: "Zone D: 검사 및 포장 구역 (Inspection & Packaging)"
+  ZoneA: "Zone A: 생산 라인",
+  ZoneB: "Zone B: 자재 창고",
+  ZoneC: "Zone C: 조립 구역",
+  ZoneD: "Zone D: 검사 및 포장 구역"
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
