@@ -416,7 +416,16 @@ function App() {
       {/* Top Banner Header */}
       <header className="dashboard-header">
         <div className="header-title-container">
-          <Layers className="logo-icon" size={24} />
+          <img 
+            src="/logo.png" 
+            alt="Aegis Factory Logo" 
+            style={{ 
+              width: '32px', 
+              height: '32px', 
+              objectFit: 'contain',
+              marginRight: '0.2rem'
+            }} 
+          />
           <div>
             <h1>Aegis Factory</h1>
             <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', marginTop: '0.1rem' }}>
