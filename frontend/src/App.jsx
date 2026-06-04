@@ -554,7 +554,15 @@ function App() {
           <div className="report-modal-content" style={{ maxWidth: '750px', height: '70vh' }}>
             <div className="card-panel-header" style={{ margin: 0, padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
               <div className="card-panel-title" style={{ color: 'var(--color-cyan)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <MessageSquare size={18} />
+                <img 
+                  src="/logo.png" 
+                  alt="Aegis Icon" 
+                  style={{ 
+                    width: '18px', 
+                    height: '18px', 
+                    objectFit: 'contain'
+                  }} 
+                />
                 <span style={{ fontWeight: 600 }}>Aegis AI 지원 센터</span>
               </div>
               <button
