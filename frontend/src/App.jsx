@@ -447,12 +447,20 @@ function App() {
               color: 'var(--color-cyan)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.3rem',
+              gap: '0.4rem',
               flex: 'none',
               whiteSpace: 'nowrap'
             }}
           >
-            <MessageSquare size={12} />
+            <img 
+              src="/logo.png" 
+              alt="Aegis Icon" 
+              style={{ 
+                width: '14px', 
+                height: '14px', 
+                objectFit: 'contain'
+              }} 
+            />
             <span>AEGIS 챗</span>
           </button>
 
