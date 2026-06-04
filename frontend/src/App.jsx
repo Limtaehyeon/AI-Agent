@@ -10,58 +10,76 @@ import SavedReports from './components/SavedReports';
 import { Cpu, RefreshCw, Layers, ShieldAlert, Sparkles, FileText, X, Zap, DollarSign, Leaf, AlertTriangle, Eye, EyeOff, MessageSquare } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as ChartTooltip, Cell } from 'recharts';
 
-// Helper component for glowing circular progress ring
-const ProgressRing = ({ percentage, color, title, subtitle }) => {
-  const pct = Math.max(0, Math.min(100, Math.round(percentage)));
-  const radius = 28;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (pct / 100) * circumference;
-
+// Helper component for glowing premium numeric KPI stats card
+const KpiStatCard = ({ value, target, title, unit, color, icon: Icon, percentage }) => {
+  const pct = Math.max(0, Math.round(percentage));
+  const isTargetMet = pct >= 100;
+  
   return (
     <div style={{
       background: 'var(--bg-secondary)',
       border: '1px solid var(--border-color)',
       borderRadius: '12px',
-      padding: '0.85rem 1rem',
+      padding: '1.15rem 1.25rem',
       display: 'flex',
-      alignItems: 'center',
-      gap: '0.75rem',
+      flexDirection: 'column',
+      gap: '0.65rem',
       flex: 1,
-      minWidth: '220px'
+      minWidth: '220px',
+      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
     }}>
-      <div style={{ position: 'relative', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <svg style={{ transform: 'rotate(-90deg)', width: '70px', height: '70px' }}>
-          <circle
-            cx="35"
-            cy="35"
-            r={radius}
-            fill="transparent"
-            stroke="rgba(255,255,255,0.03)"
-            strokeWidth="5"
-          />
-          <circle
-            cx="35"
-            cy="35"
-            r={radius}
-            fill="transparent"
-            stroke={color}
-            strokeWidth="5"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            style={{
-              transition: 'stroke-dashoffset 0.6s ease-in-out',
-              filter: `drop-shadow(0 0 3px ${color})`
-            }}
-          />
-        </svg>
-        <span style={{ position: 'absolute', fontSize: '0.75rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', color: '#fff' }}>
-          {pct}%
+      {/* Header with Title and Icon */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+          {title}
         </span>
+        <div style={{ 
+          width: '28px', 
+          height: '28px', 
+          borderRadius: '6px', 
+          background: color === 'var(--color-green)' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(6, 182, 212, 0.08)', 
+          color: color, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}>
+          <Icon size={14} />
+        </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>{title}</span>
-        <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#fff' }}>{subtitle}</span>
+
+      {/* Main Big Number */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.15rem' }}>
+        <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', lineHeight: 1, fontFamily: 'var(--font-mono)' }}>
+          {value}
+        </span>
+        {unit && (
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            {unit}
+          </span>
+        )}
+      </div>
+
+      {/* Footer with Target & Achievement Badge */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+        paddingTop: '0.6rem',
+        fontSize: '0.65rem',
+        color: 'var(--text-secondary)'
+      }}>
+        <span>목표: {target}</span>
+        <span style={{
+          fontWeight: 700,
+          background: isTargetMet ? 'var(--color-green-glow)' : 'rgba(255,255,255,0.05)',
+          color: isTargetMet ? 'var(--color-green)' : color,
+          padding: '2px 8px',
+          borderRadius: '9999px',
+          border: `1px solid ${isTargetMet ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-color)'}`
+        }}>
+          {pct}% 달성
+        </span>
       </div>
     </div>
   );
@@ -333,14 +351,11 @@ function App() {
   const formatReportMarkdown = (text) => {
     if (!text) return '';
 
-    // Replace text progress bars [■■■■■□□□□□] 50% with styled HTML elements
+    // Replace text progress bars [■■■■■□□□□□] 50% with styled HTML badges
     let processedText = text;
     const progressRegex = /\[([■□█░]*?)\]\s*(\d+)%/g;
     processedText = processedText.replace(progressRegex, (match, blocks, pct) => {
-      return `<div class="report-inline-progress">
-        <div class="report-inline-progress-bar" style="width: ${pct}%"></div>
-        <span class="report-inline-progress-text">${pct}%</span>
-      </div>`;
+      return `<span class="report-badge-pill">${pct}% 달성</span>`;
     });
 
     let html = processedText
@@ -617,25 +632,34 @@ function App() {
                     📈 실시간 데이터 시각화 보드 (Interactive Widgets)
                   </div>
                   
-                  {/* Circular Progress Rings Grid */}
+                  {/* KPI Stat Cards Grid (Replaced circular gauges with executive cards) */}
                   <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%' }}>
-                    <ProgressRing 
-                      percentage={(parsedData.kpiSavingsKwh / 50.0) * 100} 
+                    <KpiStatCard 
+                      value={parsedData.kpiSavingsKwh.toFixed(1)} 
+                      unit="kWh"
+                      target="50.0 kWh" 
+                      percentage={(parsedData.kpiSavingsKwh / 50.0) * 100}
                       color="var(--color-green)" 
-                      title="전력 절감 성과 (목표: 50.0 kWh)" 
-                      subtitle={`${parsedData.kpiSavingsKwh.toFixed(1)} kWh`}
+                      title="누적 전력 절감량" 
+                      icon={Zap}
                     />
-                    <ProgressRing 
-                      percentage={(parsedData.kpiSavingsCost / 15000) * 100} 
+                    <KpiStatCard 
+                      value={parsedData.kpiSavingsCost.toLocaleString()} 
+                      unit="원"
+                      target="₩15,000 원" 
+                      percentage={(parsedData.kpiSavingsCost / 15000) * 100}
                       color="var(--color-cyan)" 
-                      title="비용 절감 성과 (목표: ₩15,000)" 
-                      subtitle={`₩${parsedData.kpiSavingsCost.toLocaleString()}`}
+                      title="누적 비용 절감액" 
+                      icon={DollarSign}
                     />
-                    <ProgressRing 
-                      percentage={parsedData.complianceRate} 
+                    <KpiStatCard 
+                      value={parsedData.complianceRate.toString()} 
+                      unit="%"
+                      target="100%" 
+                      percentage={parsedData.complianceRate}
                       color={parsedData.complianceRate >= 80 ? 'var(--color-green)' : 'var(--color-amber)'} 
-                      title="안전 수칙 준수율 (목표: 100%)" 
-                      subtitle={`${parsedData.complianceRate}%`}
+                      title="안전 수칙 준수율" 
+                      icon={ShieldAlert}
                     />
                   </div>
 
