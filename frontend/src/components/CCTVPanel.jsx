@@ -414,13 +414,14 @@ const CCTVPanel = ({ zones, activeZoneId, onZoneChange, onWorkerCountChange, equ
               <span style={{ color: 'var(--text-secondary)' }}>🔌 대기전력 차단</span>
               <span style={{
                 fontWeight: 700,
-                fontSize: '0.65rem',
-                color: activeZone.standbyPowerCut ? 'var(--color-green)' : 'var(--text-muted)',
-                background: activeZone.standbyPowerCut ? 'var(--color-green-glow)' : 'transparent',
-                padding: activeZone.standbyPowerCut ? '1px 4px' : '0',
-                borderRadius: '2px'
+                fontSize: '0.7rem',
+                color: activeZone.standbyPowerCut ? 'var(--color-green)' : 'var(--color-cyan)',
+                background: activeZone.standbyPowerCut ? 'var(--color-green-glow)' : 'var(--color-cyan-glow)',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                border: `1px solid ${activeZone.standbyPowerCut ? 'rgba(16, 185, 129, 0.2)' : 'rgba(6, 182, 212, 0.2)'}`
               }}>
-                {activeZone.standbyPowerCut ? "ACTIVE" : "STANDBY"}
+                {activeZone.standbyPowerCut ? "차단 (절전)" : "해제 (가동)"}
               </span>
             </div>
             {/* Mode status */}
