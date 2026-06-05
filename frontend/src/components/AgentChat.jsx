@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Cpu, Send, RefreshCw, FileText } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
@@ -146,6 +147,42 @@ const AgentChat = ({ onGenerateReport }) => {
     { label: "🛡️ 안전 상태 확인", text: "현재 공장에 감지된 안전 미착용이나 과밀 경보 상황이 있는지 확인하고 대처 방안을 알려줘." }
   ];
 
+  // Parse chat reply content to generate inline charts & widgets
+  const parseChatData = (text) => {
+    if (!text) return null;
+
+    // 1. Extract KPI values
+    const kwhMatch = text.match(/([\d.]+)\s*kWh/);
+    const costMatch = text.match(/₩([\d,]+)\s*원?/);
+    const kpiSavingsKwh = kwhMatch ? parseFloat(kwhMatch[1]) : null;
+    const kpiSavingsCost = costMatch ? parseInt(costMatch[1].replace(/[^\d]/g, '')) : null;
+
+    // 2. Extract zone table rows
+    const zoneData = [];
+    const lines = text.split('\n');
+    lines.forEach(line => {
+      // Matches: | Zone Name | 3명 | ... | 10.5 kW |
+      const match = line.match(/^\|\s*([^|:]+?)\s*\|\s*(\d+)명\s*\|\s*([^|:]+?)\s*\|\s*([^|:]+?)\s*\|\s*([^|:]+?)\s*\|\s*([\d.]+)\s*kW/);
+      if (match) {
+        zoneData.push({
+          name: match[1].trim(),
+          workers: parseInt(match[2]),
+          power: parseFloat(match[6])
+        });
+      }
+    });
+
+    const complianceMatch = text.match(/준수율.*?\s*(\d+)%/);
+    const complianceRate = complianceMatch ? parseInt(complianceMatch[1]) : null;
+
+    return {
+      kpiSavingsKwh,
+      kpiSavingsCost,
+      zoneData: zoneData.length > 0 ? zoneData : null,
+      complianceRate
+    };
+  };
+
   return (
     <div className="card-panel chat-container">
       <div className="card-panel-header">
@@ -179,11 +216,70 @@ const AgentChat = ({ onGenerateReport }) => {
 
       {/* Chat Messages Log */}
       <div ref={chatContainerRef} className="chat-messages">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`chat-bubble ${msg.role}`}>
-            {msg.role === 'agent' ? formatAgentReply(msg.text) : msg.text}
-          </div>
-        ))}
+        {messages.map((msg, idx) => {
+          if (msg.role === 'agent') {
+            const parsed = parseChatData(msg.text);
+            const hasWidgets = parsed && (parsed.kpiSavingsKwh || parsed.zoneData || parsed.complianceRate !== null);
+
+            return (
+              <div key={idx} className={`chat-bubble ${msg.role}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '92%', alignSelf: 'flex-start' }}>
+                {/* Visual widgets inline inside chat bubble */}
+                {hasWidgets && (
+                  <div style={{
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '0.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    width: '100%',
+                    boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.3)'
+                  }}>
+                    {/* Glowing KPI Metrics row */}
+                    {parsed.kpiSavingsKwh && parsed.kpiSavingsCost && (
+                      <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                        <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '0.5rem', borderRadius: '6px', flex: 1 }}>
+                          <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>누적 전력 절감</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--color-green)', fontFamily: 'var(--font-mono)' }}>{parsed.kpiSavingsKwh} kWh</div>
+                        </div>
+                        <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '0.5rem', borderRadius: '6px', flex: 1 }}>
+                          <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>누적 비용 절감</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--color-cyan)', fontFamily: 'var(--font-mono)' }}>₩{parsed.kpiSavingsCost.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mini Bar Chart for zone power load comparison */}
+                    {parsed.zoneData && (
+                      <div style={{ height: '140px', width: '100%', background: 'var(--bg-primary)', padding: '0.5rem', borderRadius: '6px', display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.25rem' }}>📊 구역별 실시간 전력 부하 비교 (kW)</span>
+                        <div style={{ width: '100%', flex: 1, minHeight: 0 }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={parsed.zoneData} margin={{ top: 5, right: 5, left: -35, bottom: 0 }}>
+                              <XAxis dataKey="name" fontSize={8} stroke="var(--text-muted)" tickLine={false} />
+                              <YAxis fontSize={8} stroke="var(--text-muted)" tickLine={false} axisLine={false} />
+                              <Bar dataKey="power" fill="var(--color-cyan)" radius={[2, 2, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div style={{ width: '100%' }}>
+                  {formatAgentReply(msg.text)}
+                </div>
+              </div>
+            );
+          } else {
+            return (
+              <div key={idx} className={`chat-bubble ${msg.role}`}>
+                {msg.text}
+              </div>
+            );
+          }
+        })}
         {isLoading && (
           <div className="chat-bubble agent" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
             <RefreshCw size={14} className="fan-spin" style={{ animationDuration: '1s' }} />

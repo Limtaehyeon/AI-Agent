@@ -196,6 +196,7 @@ function App() {
   const [showChatModal, setShowChatModal] = useState(false);
   const [parsedData, setParsedData] = useState(null);
   const [equipmentRecommendations, setEquipmentRecommendations] = useState({});
+  const [activeReportTab, setActiveReportTab] = useState('visual');
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
@@ -713,52 +714,99 @@ function App() {
                 <X size={18} />
               </button>
             </div>
+            {/* Tab Selector inside Report Modal */}
+            <div style={{ display: 'flex', gap: '1rem', padding: '0rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+              <button
+                onClick={() => setActiveReportTab('visual')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: activeReportTab === 'visual' ? '2px solid var(--color-green)' : '2px solid transparent',
+                  color: activeReportTab === 'visual' ? 'var(--color-green)' : 'var(--text-secondary)',
+                  padding: '0.75rem 0.5rem',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                <span>📊 시각화 대시보드</span>
+              </button>
+              <button
+                onClick={() => setActiveReportTab('detailed')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: activeReportTab === 'detailed' ? '2px solid var(--color-cyan)' : '2px solid transparent',
+                  color: activeReportTab === 'detailed' ? 'var(--color-cyan)' : 'var(--text-secondary)',
+                  padding: '0.75rem 0.5rem',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                <span>📝 상세 분석 보고서</span>
+              </button>
+            </div>
             <div className="report-modal-body">
-              {/* Dynamic Interactive Visual Dashboard View */}
-              {parsedData && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#fff', marginBottom: '0.25rem' }}>
-                    📈 실시간 데이터 시각화 보드 (Interactive Widgets)
-                  </div>
-                  
-                  {/* KPI Stat Cards Grid (Replaced circular gauges with executive cards) */}
-                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%' }}>
-                    <KpiStatCard 
-                      value={parsedData.kpiSavingsKwh.toFixed(1)} 
-                      unit="kWh"
-                      target="50.0 kWh" 
-                      percentage={(parsedData.kpiSavingsKwh / 50.0) * 100}
-                      color="var(--color-green)" 
-                      title="누적 전력 절감량" 
-                      icon={Zap}
-                    />
-                    <KpiStatCard 
-                      value={parsedData.kpiSavingsCost.toLocaleString()} 
-                      unit="원"
-                      target="₩15,000 원" 
-                      percentage={(parsedData.kpiSavingsCost / 15000) * 100}
-                      color="var(--color-cyan)" 
-                      title="누적 비용 절감액" 
-                      icon={DollarSign}
-                    />
-                    <KpiStatCard 
-                      value={parsedData.complianceRate.toString()} 
-                      unit="%"
-                      target="100%" 
-                      percentage={parsedData.complianceRate}
-                      color={parsedData.complianceRate >= 80 ? 'var(--color-green)' : 'var(--color-amber)'} 
-                      title="안전 수칙 준수율" 
-                      icon={ShieldAlert}
-                    />
-                  </div>
+              {activeReportTab === 'visual' ? (
+                /* Dynamic Interactive Visual Dashboard View */
+                parsedData ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#fff', marginBottom: '0.25rem' }}>
+                      📈 실시간 데이터 시각화 보드 (Interactive Widgets)
+                    </div>
+                    
+                    {/* KPI Stat Cards Grid */}
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%' }}>
+                      <KpiStatCard 
+                        value={parsedData.kpiSavingsKwh.toFixed(1)} 
+                        unit="kWh"
+                        target="50.0 kWh" 
+                        percentage={(parsedData.kpiSavingsKwh / 50.0) * 100}
+                        color="var(--color-green)" 
+                        title="누적 전력 절감량" 
+                        icon={Zap}
+                      />
+                      <KpiStatCard 
+                        value={parsedData.kpiSavingsCost.toLocaleString()} 
+                        unit="원"
+                        target="₩15,000 원" 
+                        percentage={(parsedData.kpiSavingsCost / 15000) * 100}
+                        color="var(--color-cyan)" 
+                        title="누적 비용 절감액" 
+                        icon={DollarSign}
+                      />
+                      <KpiStatCard 
+                        value={parsedData.complianceRate.toString()} 
+                        unit="%"
+                        target="100%" 
+                        percentage={parsedData.complianceRate}
+                        color={parsedData.complianceRate >= 80 ? 'var(--color-green)' : 'var(--color-amber)'} 
+                        title="안전 수칙 준수율" 
+                        icon={ShieldAlert}
+                      />
+                    </div>
 
-                  {/* Dynamic Recharts Bar Chart comparing active zone loads */}
-                  <ReportZoneChart zoneData={parsedData.zoneData} />
-                </div>
+                    {/* Dynamic Recharts Bar Chart */}
+                    <ReportZoneChart zoneData={parsedData.zoneData} />
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                    시각화할 데이터를 파싱할 수 없습니다. 상세 분석 보고서를 확인해 주세요.
+                  </div>
+                )
+              ) : (
+                /* Standard Markdown Content */
+                formatReportMarkdown(reportMarkdown)
               )}
-
-              {/* Standard Markdown Content */}
-              {formatReportMarkdown(reportMarkdown)}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)' }}>
               <button
