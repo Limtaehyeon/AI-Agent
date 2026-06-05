@@ -500,6 +500,29 @@ app.post('/api/factory/control', async (req, res) => {
         zone.hasHelmetViolation = false;
       }
       
+      // Instantly apply rule-based control state for instant UI responsiveness
+      if (zone.workers === 0) {
+        zone.lights = 20;
+        zone.ventilation = 10;
+        zone.standbyPowerCut = true;
+      } else if (zone.workers === 1) {
+        zone.lights = 60;
+        zone.ventilation = 25;
+        zone.standbyPowerCut = false;
+      } else if (zone.workers === 2) {
+        zone.lights = 70;
+        zone.ventilation = 40;
+        zone.standbyPowerCut = false;
+      } else if (zone.workers === 3) {
+        zone.lights = 90;
+        zone.ventilation = 60;
+        zone.standbyPowerCut = false;
+      } else {
+        zone.lights = 100;
+        zone.ventilation = 90;
+        zone.standbyPowerCut = false;
+      }
+      
       factoryState.logs.push({
         timestamp: new Date().toLocaleTimeString(),
         type: "vision",
