@@ -214,13 +214,15 @@ ${JSON.stringify(factoryState, null, 2)}
     
     // 1. 구역별 상태 요약 질문 처리
     if (normalizedMsg.includes('구역') || normalizedMsg.includes('상태') || normalizedMsg.includes('요약')) {
-      let zoneSummaries = Object.entries(factoryState.zones).map(([id, z]) => {
-        return `- **${z.name} (${id})**: 인원 ${z.workers}명 (${z.density}), 조명 ${z.lights}%, 환기 ${z.ventilation}%, 전력 ${z.powerConsumption.toFixed(1)} kW (기본 ${z.basePower} kW)`;
+      let zoneTableRows = Object.entries(factoryState.zones).map(([id, z]) => {
+        return `| ${z.name} | ${z.workers}명 | ${z.density} | ${z.lights}% | ${z.ventilation}% | ${z.powerConsumption.toFixed(1)} kW |`;
       }).join('\n');
       
       return `[로컬 분석 엔진 응답] 실시간 Aegis Factory 센서 상태 분석 결과입니다:
-      
-${zoneSummaries}
+
+| 구역명 | 작업 인원 | 밀집도 | 조명 설정 | 환기 설정 | 현재 전력 부하 |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+${zoneTableRows}
 
 현재 모든 구역이 로컬 AI 최적화 알고리즘에 의해 정상 제어되고 있습니다.`;
     }
@@ -231,10 +233,12 @@ ${zoneSummaries}
       const totalSavingsCost = factoryState.cumulativeSavingsCost || 0;
       
       return `[로컬 분석 엔진 응답] 실시간 에너지 절약 현황 보고입니다:
-      
-- **누적 전력 절감량**: **${totalSavingsKwh.toFixed(1)} kWh**
-- **누적 비용 절감액**: **₩${totalSavingsCost.toLocaleString()}**
-- **환경 기여도**: 소나무 약 ${Math.round(totalSavingsKwh * 0.45)}그루 식재 효과와 동일 (탄소 감축 기준)
+
+| 지표명 | 현재 실측치 | 성과 목표치 | 목표 달성률 |
+| :--- | :---: | :---: | :---: |
+| **누적 전력 절감량** | ${totalSavingsKwh.toFixed(1)} kWh | 50.0 kWh | ${Math.round((totalSavingsKwh / 50.0) * 100)}% |
+| **누적 비용 절감액** | ₩${totalSavingsCost.toLocaleString()} 원 | ₩15,000 원 | ${Math.round((totalSavingsCost / 15000) * 100)}% |
+| **탄소 배출 절감량** | ${(totalSavingsKwh * 0.424).toFixed(2)} kg | 20.00 kg | ${Math.round(((totalSavingsKwh * 0.424) / 20.0) * 100)}% |
 
 에어컨 및 환기 설비가 대기전력 모드로 차단되어 에너지가 실시간으로 절감되고 있습니다.`;
     }

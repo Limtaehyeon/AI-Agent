@@ -70,17 +70,72 @@ const AgentChat = ({ onGenerateReport }) => {
     if (!text) return '';
 
     // Bold text **word**
-    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Lists * item
-    html = html.replace(/^\*\s+(.*?)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
-    // Remove consecutive <ul> closures
-    html = html.replace(/<\/ul>\s*<ul>/g, '');
+    let processedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-    // Line breaks
-    html = html.replace(/\n/g, '<br />');
+    // Split into lines to parse tables and lists
+    const lines = processedText.split('\n');
+    let inTable = false;
+    let inList = false;
 
+    const parsedLines = lines.map(line => {
+      const trimmed = line.trim();
+
+      // 1. Table Parsing
+      if (trimmed.startsWith('|')) {
+        const cols = line.split('|').map(c => c.trim()).filter(c => c !== '');
+        if (cols.length === 0) return '';
+        if (cols[0].includes('---') || cols[0].includes('===')) return '';
+
+        // Close list if open
+        let prefix = '';
+        if (inList) {
+          inList = false;
+          prefix = '</ul>';
+        }
+
+        const rowHtml = '<tr>' + cols.map(c => inTable ? `<td>${c}</td>` : `<th>${c}</th>`).join('') + '</tr>';
+        if (!inTable) {
+          inTable = true;
+          return `${prefix}<table>${rowHtml}`;
+        }
+        return rowHtml;
+      }
+
+      // Close table if open
+      let prefix = '';
+      if (inTable) {
+        inTable = false;
+        prefix = '</table>';
+      }
+
+      // 2. List Parsing
+      if (trimmed.startsWith('*') || trimmed.startsWith('-')) {
+        const content = trimmed.substring(1).trim();
+        if (!inList) {
+          inList = true;
+          return `${prefix}<ul><li>${content}</li>`;
+        }
+        return `${prefix}<li>${content}</li>`;
+      }
+
+      // Close list if open
+      if (inList) {
+        inList = false;
+        return `${prefix}</ul>${line}`;
+      }
+
+      return prefix + line;
+    });
+
+    // Make sure to close any open tables or lists at the end
+    if (inTable) {
+      parsedLines.push('</table>');
+    }
+    if (inList) {
+      parsedLines.push('</ul>');
+    }
+
+    const html = parsedLines.join('<br />');
     return <div dangerouslySetInnerHTML={{ __html: html }} />;
   };
 
