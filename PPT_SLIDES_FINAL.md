@@ -200,9 +200,9 @@
   * **[Frontend]** React, Vite, Recharts(초저지연 차트), Vanilla CSS(커스텀 다크 모드).
   * **[Backend]** Node.js, Express (RESTful API), 가상 MQTT 클라이언트 내장.
   * **[Database]** better-sqlite3 (가벼운 설치로 Edge 서버급 고속 DB 트랜잭션 구현).
-  * **[AI Model]** GCP Vertex AI 및 Google AI Studio (Gemini 1.5 Flash 최적화).
+  * **[AI Model]** YOLOv8 Custom (엣지 비전) 및 Google Cloud/Gemini 1.5 Flash (클라우드 에이전트).
 * **발표 스크립트**:
-  > "저희 시스템을 지탱하는 기술 스택입니다. 프론트엔드는 React와 Vite를 기반으로 가벼운 반응형 UI를 설계했고, 백엔드는 Node.js와 Express, DB는 경량 SQLite를 채택하여 성능이 다소 떨어지는 공장의 Edge 서버 환경에서도 무리 없이 가동될 수 있도록 최적화했습니다." (30초)
+  > "저희 시스템을 지탱하는 기술 스택입니다. React와 Vite 기반 프론트엔드, Node.js와 Express 기반 백엔드, 그리고 가벼운 SQLite 데이터베이스를 채택했습니다. 특히 CCTV 실시간 분석의 통신 지연과 비용을 극소화하기 위해 공장 현장의 컴퓨터에서 직접 YOLOv8 비전 모델로 상황을 감지하고, 최종 상황 분석 및 대화형 운영 추론에는 Google Cloud와 Gemini를 활용하는 하이브리드 AI 구조로 구축하여 현장 최적화를 완성했습니다." (30초)
 
 ---
 
